@@ -9,6 +9,9 @@ import { AppError } from '../errors/app-error';
 
 const ServerEnvSchema = z.object({
   GEMINI_API_KEY: z.string().min(1).optional(),
+  GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
+  GEMINI_TIMEOUT_MS: z.coerce.number().default(30000),
+  LIVE_GEMINI_TEST: z.string().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });
 
@@ -17,6 +20,9 @@ export type ServerEnv = z.infer<typeof ServerEnvSchema>;
 function loadServerEnv(): ServerEnv {
   const parsed = ServerEnvSchema.safeParse({
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+    GEMINI_TIMEOUT_MS: process.env.GEMINI_TIMEOUT_MS || 30000,
+    LIVE_GEMINI_TEST: process.env.LIVE_GEMINI_TEST,
     NODE_ENV: process.env.NODE_ENV,
   });
 

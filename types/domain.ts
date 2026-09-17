@@ -140,19 +140,37 @@ export interface SecurityStatus {
 }
 
 /**
- * Individual AI finding contract (used in later audit phases)
+ * Source reference supporting fine-grained citation and verification
+ */
+export interface SourceReference {
+  clause_id: string;
+  page_number?: number;
+  excerpt: string;
+  matched_range?: {
+    start: number;
+    end: number;
+  };
+}
+
+/**
+ * Individual AI finding contract
  */
 export interface Finding {
   finding_id: string;                  // e.g. "find_001"
-  clause_id: string;                   // References a valid Clause.clause_id
+  clause_id: string;                   // Primary referenced Clause.clause_id
+  affected_clause_ids?: string[];      // Multiple clause IDs if finding spans several clauses
   category: ContractCategory;
   attention_level: AttentionLevel;
+  severity?: 'low' | 'medium' | 'high'; // Optional severity alias mapped to attention
   title: string;                       // Short descriptive title
   verbatim_quote: string;              // Verbatim quote from source clause
+  source_references?: SourceReference[]; // Fine-grained source citations
   plain_language_explanation: string;  // 8th-grade readability explanation
   why_it_matters: string;              // Practical commercial hazard
   evidence: string;                    // Supporting reasoning
   uncertainty?: string;                // Ambiguities or caveats in the text
+  confidence?: number;                 // Model confidence in grounded finding (0.0 - 1.0)
+  page_number?: number;                // Page number of source clause
   suggested_question_for_counsel: string; // Question to ask an attorney
   verification_status: VerificationStatus;
   matched_range?: {                    // Exact verified coordinates in source text
@@ -161,6 +179,32 @@ export interface Finding {
   };
   suggested_alternative?: string;      // Illustrative counter-proposal
   alternative_rationale?: string;      // Rationale explaining the counter-proposal
+}
+
+/**
+ * Metadata for a completed audit run
+ */
+export interface AuditMetadata {
+  audited_at: string;
+  model_used: string;
+  duration_ms: number;
+  total_clauses_analyzed: number;
+  total_findings_count: number;
+  verified_count: number;
+  unverified_count: number;
+  rejected_count: number;
+}
+
+/**
+ * Complete Grounded Legal Audit Result
+ */
+export interface AuditResult {
+  document_id: string;
+  summary: string;
+  findings: Finding[];
+  rejected_findings?: Finding[];
+  primary_concerns: string[];
+  metadata: AuditMetadata;
 }
 
 /**

@@ -1,43 +1,47 @@
-# JuriLens — ClauseRadar
+# ClauseGuard (JuriLens — ClauseRadar)
 
 > **Deterministic Contract Intelligence & Negotiation Workspace**
 
-JuriLens ClauseRadar is an engineered, GenAI-powered legal document understanding workstation for non-lawyers. It deterministically parses commercial agreements, detects asymmetric liabilities and one-sided clauses, mathematically verifies every quote against the original text, and generates balanced, illustrative negotiation alternatives.
+ClauseGuard is an engineered, GenAI-powered legal document understanding workstation for non-lawyers. It deterministically parses commercial agreements, detects asymmetric liabilities and one-sided clauses, mathematically verifies every quote against the original text, and generates balanced, illustrative negotiation alternatives.
 
 ---
 
 ## Important Notice
 
-**INFORMATIONAL ONLY:** JuriLens assists in understanding contract provisions. It does not provide legal advice, legal opinion, or attorney representation. Consult qualified legal counsel for binding legal decisions.
+**INFORMATIONAL ONLY:** ClauseGuard assists in understanding contract provisions. It does not provide legal advice, legal opinion, or attorney representation. Consult qualified legal counsel for binding legal decisions.
 
 ---
 
-## Current Status: Phase 2 Complete (Document Ingestion & Clause Segmentation Foundation)
+## Current Status: Phase 3 Complete (Grounded Gemini Legal Audit Engine)
 
-Phase 2 establishes the deterministic document ingestion, extraction, normalization, section detection, and clause segmentation foundation that downstream AI analysis depends upon.
+Phase 3 establishes the server-side, grounded legal document audit engine built on top of the deterministic Phase 2 ingestion foundation.
 
-### Implemented Pipeline
+### Complete System Pipeline
 
 ```text
-Document Input (.txt, .md, .pdf)
+Uploaded Legal Document (.txt, .md, .pdf)
       ↓
-File Validation (MIME, size <= 500KB, magic bytes)
+Deterministic Ingestion Pipeline (Phase 2)
       ↓
-Secure Ingestion (Control character scrubbing, injection detection)
+Structured Clauses + Source References (NDDR)
       ↓
-Text Extraction (PlainTextExtractor / PdfExtractor)
+AI Audit Context Builder (lib/server/ai/context-builder.ts)
       ↓
-Text Normalization (Line wrap hyphen repair, newline standardization)
+Gemini Provider (lib/server/ai/gemini-provider.ts)
       ↓
-Page / Location Preservation
+Strict Structured Output (JSON Schema Mode)
       ↓
-Section Detection (Heuristic heading & article detection)
+Level 1 Validation (Zod Schema Validation)
       ↓
-Clause Segmentation (Stable IDs: clause_001, nesting, parent/child)
+Level 2 Verification (lib/server/ai/quote-verifier.ts)
+  • Check 1: Referenced clause_id exists in document
+  • Check 2: Verbatim quote verified (Tier 1: Exact Substring, Tier 2: Normalized Levenshtein)
+  • Check 3: Page & location metadata matches
+  • Filter: Unverified findings rejected from trusted output
       ↓
-Deterministic Chunking (Traceable chunks referencing source clauses)
+Validated AuditResult (Document ID, Summary, Findings, Metadata)
       ↓
-StructuredDocument (Strict Zod schema validation)
+Application & API Layer (POST /api/v1/audit)
 ```
 
 ---
@@ -45,10 +49,13 @@ StructuredDocument (Strict Zod schema validation)
 ## Core Architectural Invariants
 
 1. **Deterministic Software Controls Source Truth:** File validation, text normalization, clause segmentation, stable IDs, and source offsets are 100% deterministic. The AI does not chunk the document or invent line positions.
-2. **Canonical Normalized Text:** Exactly one canonical text string is produced and referenced across metadata, pages, sections, clauses, chunks, and downstream AI prompts.
-3. **Source Traceability:** Every clause retains its exact character span (`start_offset`, `end_offset`), line number, page number, and section ID.
-4. **Security Isolation:** Uploaded contract text is treated as untrusted input. Adversarial prompt-injection patterns are detected and flagged without destructively altering legitimate legal terms.
-5. **Zero Data Retention in Foundation:** Ingestion executes in-memory with zero persistent database storage.
+2. **AI Reasoning Constrained to Document Content:** Gemini is strictly instructed to evaluate only the text within `<untrusted_contract_text>` boundaries, never inventing clauses, external laws, or court cases.
+3. **Dual-Level Verification:**
+   - **Level 1 (Schema):** Ensures output conforms strictly to typed Zod contracts.
+   - **Level 2 (Source):** Mathematical verification ensures every cited clause exists and every quote exists verbatim in that clause.
+4. **Zero Untrusted AI Output:** Substantive findings whose quotes cannot be verified are rejected from trusted application state.
+5. **Security Isolation & Privacy:** Ingestion and audit execute in-memory. Sensitive document text, full clauses, and server API keys are never written to server logs.
+6. **Mockable AI Layer:** Unit and CI tests utilize `MockGeminiProvider`, requiring zero live API keys or network calls. Live testing is strictly opt-in via `LIVE_GEMINI_TEST=true`.
 
 ---
 
@@ -65,10 +72,78 @@ StructuredDocument (Strict Zod schema validation)
 
 ---
 
+## Environment Configuration
+
+Copy `.env.example` to `.env.local` for local execution:
+
+```bash
+# Server-only environment variables
+GEMINI_API_KEY="your-api-key-here"
+GEMINI_MODEL="gemini-2.5-flash"
+GEMINI_TIMEOUT_MS=30000
+
+# Optional: Enable live Gemini API integration test
+LIVE_GEMINI_TEST=false
+```
+
+---
+
+## API Endpoints
+
+### `POST /api/v1/audit`
+Accepts either an already parsed `StructuredDocument` or a raw contract text payload:
+
+```json
+// Request Body (Raw Text Option)
+{
+  "raw_text": "ARTICLE 1: SERVICES...\n\nARTICLE 2: INDEMNITY...",
+  "file_name": "Consulting_Agreement.txt",
+  "reject_unverified": true
+}
+```
+
+```json
+// Response Body (AuditResult)
+{
+  "document_id": "doc_a1b2c3d4e5f6",
+  "summary": "High-level summary of contractual obligations and commercial risks.",
+  "findings": [
+    {
+      "finding_id": "find_001",
+      "clause_id": "clause_002",
+      "category": "INDEMNIFICATION",
+      "attention_level": "HIGH_ATTENTION",
+      "title": "Unilateral Indemnification Obligation",
+      "verbatim_quote": "Contractor agrees to defend and indemnify Client against third-party claims.",
+      "plain_language_explanation": "Contractor must pay Client's legal defense costs if sued by a third party.",
+      "why_it_matters": "Severe uncapped financial exposure exceeding contract fees.",
+      "evidence": "Clause 2 mandates defense without reciprocal obligations.",
+      "suggested_question_for_counsel": "Can we make this indemnity mutual and capped at 1x fees?",
+      "verification_status": "VERIFIED_EXACT",
+      "matched_range": { "start": 120, "end": 196 },
+      "confidence": 0.95
+    }
+  ],
+  "primary_concerns": ["Unilateral indemnification liability"],
+  "metadata": {
+    "audited_at": "2026-09-17T18:00:00.000Z",
+    "model_used": "gemini-2.5-flash",
+    "duration_ms": 1420,
+    "total_clauses_analyzed": 8,
+    "total_findings_count": 1,
+    "verified_count": 1,
+    "unverified_count": 0,
+    "rejected_count": 0
+  }
+}
+```
+
+---
+
 ## Running Validation & Tests
 
 ```bash
-# Run unit & pipeline tests with Vitest
+# Run unit, schema, verification, and integration tests with Vitest
 npm run test
 
 # Type-check TypeScript strictly
@@ -79,49 +154,7 @@ npm run lint
 
 # Build production application
 npm run build
-```
 
----
-
-## Example Structured Output
-
-```json
-{
-  "metadata": {
-    "document_id": "doc_a1b2c3d4e5f6",
-    "file_name": "consulting_agreement.txt",
-    "file_size_bytes": 1024,
-    "format": "text/plain",
-    "extension": "txt",
-    "created_at": "2026-09-16T17:00:00.000Z",
-    "sha256_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "page_count": 1,
-    "character_count": 850,
-    "word_count": 120
-  },
-  "canonical_text": "ARTICLE 1: SERVICES\n1.1 Scope...",
-  "sections": [
-    {
-      "section_id": "sec_001",
-      "title": "ARTICLE 1: SERVICES",
-      "level": 1,
-      "start_offset": 0,
-      "end_offset": 19
-    }
-  ],
-  "clauses": [
-    {
-      "clause_id": "clause_001",
-      "document_id": "doc_a1b2c3d4e5f6",
-      "section_id": "sec_001",
-      "number_label": "1.1",
-      "title": "1.1 Scope",
-      "text": "1.1 Scope. Contractor shall perform...",
-      "start_offset": 20,
-      "end_offset": 150,
-      "line_number": 2,
-      "subclause_ids": []
-    }
-  ]
-}
+# Optional: Run live Gemini integration test (requires GEMINI_API_KEY)
+LIVE_GEMINI_TEST=true npm run test
 ```
