@@ -1,0 +1,218 @@
+/**
+ * JuriLens / ClauseRadar — Authoritative Domain Types
+ * Core domain contracts for document ingestion, structural parsing,
+ * security scanning, and downstream AI analysis.
+ */
+
+// Attention classification replacing arbitrary risk scores
+export type AttentionLevel =
+  | 'HIGH_ATTENTION'
+  | 'MEDIUM_ATTENTION'
+  | 'LOW_ATTENTION'
+  | 'INFORMATIONAL';
+
+// Standard commercial contract dimensions
+export type ContractCategory =
+  | 'PAYMENT_TERMS'
+  | 'LIABILITY_LIMITS'
+  | 'INDEMNIFICATION'
+  | 'INTELLECTUAL_PROPERTY'
+  | 'TERMINATION_RIGHTS'
+  | 'CONFIDENTIALITY'
+  | 'RESTRICTIONS_NON_COMPETE'
+  | 'GOVERNING_LAW_DISPUTES'
+  | 'MATERIAL_OBLIGATIONS';
+
+// Quote verification outcome status
+export type VerificationStatus =
+  | 'VERIFIED_EXACT'
+  | 'VERIFIED_NORMALIZED'
+  | 'UNVERIFIED_SOURCE_MISMATCH'
+  | 'NO_QUOTE_PROVIDED';
+
+// Supported document MIME types and extensions
+export type SupportedDocumentFormat = 'text/plain' | 'text/markdown' | 'application/pdf';
+export type SupportedFileExtension = 'txt' | 'md' | 'pdf';
+
+/**
+ * Exact character span in a document or page
+ */
+export interface TextSpan {
+  start_offset: number; // 0-based character index (inclusive)
+  end_offset: number;   // 0-based character index (exclusive)
+}
+
+/**
+ * Source location reference for complete auditability
+ */
+export interface SourceLocation {
+  document_id: string;
+  page_number?: number;      // 1-based page index (if available from format)
+  section_id?: string;       // Stable ID of enclosing section
+  clause_id?: string;        // Stable ID of enclosing clause
+  span: TextSpan;            // Character span relative to canonical normalized text
+  raw_line_number?: number;  // Line number in extracted text
+}
+
+/**
+ * Document metadata extracted during ingestion
+ */
+export interface DocumentMetadata {
+  document_id: string;       // Cryptographic/deterministic hash identifier
+  file_name: string;         // Sanitized original filename
+  file_size_bytes: number;   // Input size
+  format: SupportedDocumentFormat;
+  extension: SupportedFileExtension;
+  created_at: string;        // ISO 8601 timestamp
+  sha256_hash: string;       // Content integrity hash
+  page_count: number;        // Number of extracted pages (>= 1)
+  character_count: number;   // Total character count in normalized text
+  word_count: number;        // Word count estimate
+}
+
+/**
+ * Individual page representation (preserves physical format boundaries)
+ */
+export interface DocumentPage {
+  page_number: number;       // 1-based
+  text: string;              // Normalized text on this page
+  char_start_offset: number; // Offset of page start in canonical document
+  char_end_offset: number;   // Offset of page end in canonical document
+}
+
+/**
+ * Structural section or heading detected in the agreement
+ */
+export interface DocumentSection {
+  section_id: string;        // e.g. "sec_001"
+  title: string;             // Section header, e.g. "ARTICLE 3: PAYMENT TERMS"
+  raw_heading: string;       // Unmodified heading string
+  level: number;             // Heading hierarchy depth: 1 (Article), 2 (Section), 3 (Subsection)
+  start_offset: number;      // Character start in canonical text
+  end_offset: number;        // Character end in canonical text
+  page_number?: number;      // Page where section starts
+}
+
+/**
+ * Segmented legal clause or subclause
+ */
+export interface Clause {
+  clause_id: string;         // Stable, zero-padded identifier: "clause_001", "clause_002"
+  document_id: string;       // Parent document ID
+  section_id?: string;       // Associated section ID if nested under a heading
+  parent_clause_id?: string; // Parent clause ID for nested numbering (e.g. 4.2(a) -> 4.2)
+  number_label?: string;     // Explicit numbering label if found: "4.1", "(b)", "III.A"
+  title?: string;            // Synthesized or extracted title
+  text: string;              // Verbatim normalized clause text
+  start_offset: number;      // Character start in canonical text
+  end_offset: number;        // Character end in canonical text
+  page_number?: number;      // Page where clause begins
+  line_number: number;       // 1-based line number in canonical text
+  subclause_ids: string[];   // Children clause IDs for nested navigation
+}
+
+/**
+ * Deterministic text chunk for retrieval and token-bounded processing
+ */
+export interface Chunk {
+  chunk_id: string;          // Stable chunk ID: "chunk_001"
+  document_id: string;
+  clause_id: string;         // Primary referenced clause
+  section_id?: string;
+  page_number?: number;
+  text: string;              // Chunk text content
+  start_offset: number;
+  end_offset: number;
+  token_estimate: number;    // Approximate token count (chars / 4)
+  sequence_index: number;    // 0-based sequential ordering
+}
+
+/**
+ * Security inspection status
+ */
+export interface SecurityStatus {
+  passed: boolean;
+  injection_patterns_detected: number;
+  flagged_tokens: string[];
+  pii_redacted_count: number;
+  sanitized: boolean;
+  notes?: string[];
+}
+
+/**
+ * Individual AI finding contract (used in later audit phases)
+ */
+export interface Finding {
+  finding_id: string;                  // e.g. "find_001"
+  clause_id: string;                   // References a valid Clause.clause_id
+  category: ContractCategory;
+  attention_level: AttentionLevel;
+  title: string;                       // Short descriptive title
+  verbatim_quote: string;              // Verbatim quote from source clause
+  plain_language_explanation: string;  // 8th-grade readability explanation
+  why_it_matters: string;              // Practical commercial hazard
+  evidence: string;                    // Supporting reasoning
+  uncertainty?: string;                // Ambiguities or caveats in the text
+  suggested_question_for_counsel: string; // Question to ask an attorney
+  verification_status: VerificationStatus;
+  matched_range?: {                    // Exact verified coordinates in source text
+    start: number;
+    end: number;
+  };
+  suggested_alternative?: string;      // Illustrative counter-proposal
+  alternative_rationale?: string;      // Rationale explaining the counter-proposal
+}
+
+/**
+ * Canonical Structured Document: output of ingestion and clause segmentation
+ */
+export interface StructuredDocument {
+  metadata: DocumentMetadata;
+  canonical_text: string;    // The single canonical normalized source of truth
+  pages: DocumentPage[];     // Preserved page boundaries
+  sections: DocumentSection[]; // Structural headings
+  clauses: Clause[];         // Segmented clauses with stable IDs
+  chunks: Chunk[];           // Deterministic retrieval chunks
+  security_status: SecurityStatus; // Security scan results
+}
+
+/**
+ * Complete Document Workspace State
+ */
+export interface DocumentWorkspace {
+  document: StructuredDocument;
+  findings: Finding[];
+  overall_summary: {
+    high_count: number;
+    medium_count: number;
+    low_count: number;
+    info_count: number;
+    primary_concerns: string[];
+  };
+}
+
+/**
+ * Raw extraction output from a format extractor before normalization
+ */
+export interface ExtractionResult {
+  raw_text: string;
+  pages: {
+    page_number: number;
+    text: string;
+  }[];
+  format: SupportedDocumentFormat;
+  warnings: string[];
+}
+
+/**
+ * High-level Ingestion Result
+ */
+export interface IngestionResult {
+  success: boolean;
+  document?: StructuredDocument;
+  error?: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
+}
