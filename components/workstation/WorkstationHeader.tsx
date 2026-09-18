@@ -2,19 +2,25 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Plus, FileText } from 'lucide-react';
+import { ShieldCheck, Plus, FileText, Search, GitCompareArrows } from 'lucide-react';
 import { SHORT_DISCLAIMER } from '@/lib/constants/disclaimers';
+
+export type WorkstationMode = 'audit' | 'compare';
 
 interface WorkstationHeaderProps {
   activeFileName?: string;
   onNewAudit?: () => void;
   isAnalyzing?: boolean;
+  activeMode?: WorkstationMode;
+  onModeChange?: (mode: WorkstationMode) => void;
 }
 
 export function WorkstationHeader({
   activeFileName,
   onNewAudit,
   isAnalyzing = false,
+  activeMode = 'audit',
+  onModeChange,
 }: WorkstationHeaderProps) {
   return (
     <header className="bg-slate-900 text-slate-100 border-b border-slate-800 sticky top-0 z-30 shadow-md">
@@ -43,7 +49,7 @@ export function WorkstationHeader({
                   Workstation
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
+              <p className="text-[11px] text-slate-400 hidden lg:block">
                 Deterministic Contract Intelligence & Grounded AI Audit
               </p>
             </div>
@@ -51,15 +57,47 @@ export function WorkstationHeader({
 
           {/* Active file badge */}
           {activeFileName && (
-            <div className="hidden md:flex items-center gap-2 pl-4 ml-4 border-l border-slate-800 text-xs text-slate-300">
+            <div className="hidden xl:flex items-center gap-2 pl-4 ml-4 border-l border-slate-800 text-xs text-slate-300">
               <FileText className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-slate-400">Document:</span>
-              <span className="font-medium text-white max-w-[200px] truncate" title={activeFileName}>
+              <span className="text-slate-400">Active:</span>
+              <span className="font-medium text-white max-w-[180px] truncate" title={activeFileName}>
                 {activeFileName}
               </span>
             </div>
           )}
         </div>
+
+        {/* Center: Workstation Mode Selector */}
+        {onModeChange && (
+          <div className="flex items-center p-1 rounded-lg bg-slate-950 border border-slate-800 shadow-inner">
+            <button
+              type="button"
+              onClick={() => onModeChange('audit')}
+              disabled={isAnalyzing}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                activeMode === 'audit'
+                  ? 'bg-slate-800 text-amber-300 shadow-sm ring-1 ring-slate-700'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span>Audit Document</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onModeChange('compare')}
+              disabled={isAnalyzing}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                activeMode === 'compare'
+                  ? 'bg-slate-800 text-amber-300 shadow-sm ring-1 ring-slate-700'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <GitCompareArrows className="w-3.5 h-3.5 text-amber-400" />
+              <span>Compare Contracts</span>
+            </button>
+          </div>
+        )}
 
         {/* Header Actions */}
         <div className="flex items-center gap-3">
@@ -71,7 +109,7 @@ export function WorkstationHeader({
               aria-label="Start New Audit"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>New Audit</span>
+              <span className="hidden sm:inline">New Analysis</span>
             </button>
           )}
         </div>

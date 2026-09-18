@@ -77,3 +77,99 @@ export const SAMPLE_CONTRACTS: SampleContract[] = [
   SAMPLE_CONSULTING_AGREEMENT,
   SAMPLE_MUTUAL_NDA,
 ];
+
+export const SAMPLE_REVISED_CONSULTING_AGREEMENT: SampleContract = {
+  id: 'consulting-agreement-revised',
+  name: 'Master Consulting Agreement (Counterproposal).txt',
+  category: 'Commercial Services',
+  description: 'Counterproposal: Net-30 payment, mutual capped indemnity, mutual 30-day termination, added audit rights.',
+  content: `MASTER CONSULTING SERVICES AGREEMENT
+
+This Master Consulting Services Agreement ("Agreement") is entered into as of October 1, 2026, by and between Nexus Corporation, a Delaware corporation ("Client"), and Apex Advisory Group LLC ("Consultant").
+
+1. SCOPE OF SERVICES
+Consultant shall perform the technology advisory and strategic implementation services set forth in Statements of Work issued under this Agreement. Consultant shall devote commercially reasonable efforts to fulfill deliverables.
+
+2. FEES AND PAYMENT TERMS
+Client shall compensate Consultant in accordance with the fee schedule specified in each SOW. Client shall remit payment for undisputed invoice amounts within thirty (30) calendar days following receipt of Consultant's written invoice. Late payments shall incur interest at 1.5% per month.
+
+3. INDEMNIFICATION AND DEFENSE
+Each party agrees to defend, indemnify, and hold harmless the other party, its affiliates, directors, officers, and employees from and against third-party claims arising out of the indemnifying party's gross negligence or willful misconduct. The total aggregate liability under this indemnification provision shall be capped at fifty thousand dollars ($50,000).
+
+4. LIMITATION OF LIABILITY
+Neither party shall be liable for indirect, consequential, or punitive damages. Each party's total aggregate liability under this Agreement shall be limited to the total fees paid or payable by Client in the twelve (12) months preceding the claim.
+
+5. INTELLECTUAL PROPERTY OWNERSHIP
+Client shall own all final deliverables created specifically for Client under an SOW. Consultant retains sole ownership of all pre-existing IP, background tools, software libraries, and know-how utilized in providing the services.
+
+6. TERM AND TERMINATION
+This Agreement shall commence on the Effective Date and continue for a period of two (2) years. Either party may terminate this Agreement or any SOW for convenience at any time upon thirty (30) calendar days' prior written notice to the other party.
+
+7. GOVERNING LAW AND DISPUTE RESOLUTION
+This Agreement shall be construed and governed in accordance with the laws of the State of New York. Any dispute shall be resolved through good faith executive negotiations followed by binding arbitration in New York, NY.
+
+8. SECURITY AND AUDIT RIGHTS
+Client may conduct an annual security compliance review of Consultant systems used to process Client data upon thirty (30) days' advance written notice during standard business hours.`,
+};
+
+export const SAMPLE_REVISED_MUTUAL_NDA: SampleContract = {
+  id: 'mutual-nda-revised',
+  name: 'Mutual NDA (Counterproposal).txt',
+  category: 'Confidentiality',
+  description: 'Counterproposal: 3-year confidentiality term, 12-month non-solicitation, added GDPR compliance covenant.',
+  content: `MUTUAL NON-DISCLOSURE AGREEMENT
+
+This Mutual Non-Disclosure Agreement ("Agreement") is effective as of November 15, 2026, by and between Meridian Systems Inc. ("Party A") and Horizon Technologies LLC ("Party B").
+
+1. PURPOSE
+The parties wish to explore a potential strategic commercial partnership and in connection therewith may disclose proprietary business, technical, and financial information.
+
+2. DEFINITION OF CONFIDENTIAL INFORMATION
+"Confidential Information" means non-public business, financial, or technical information explicitly marked as confidential at disclosure or confirmed in writing within thirty (30) days.
+
+3. CONFIDENTIALITY OBLIGATIONS
+Each party agrees to protect the other party's Confidential Information with reasonable care. Confidential Information shall not be disclosed to third parties without prior written authorization, except to professional advisors under confidentiality duties.
+
+4. DURATION OF OBLIGATIONS
+The confidentiality obligations under this Agreement shall expire three (3) years from the Effective Date, except for trade secrets which shall remain protected for as long as they qualify as trade secrets under applicable law.
+
+5. NON-SOLICITATION
+During the term of this Agreement and for a period of twelve (12) months following expiration, neither party shall intentionally solicit or recruit senior management personnel of the other party.
+
+6. INJUNCTIVE RELIEF
+The parties acknowledge that unauthorized disclosure may cause irreparable injury. Either party may seek equitable injunctive relief in any court of competent jurisdiction upon demonstrating likelihood of harm.
+
+7. DATA PROTECTION
+Each party agrees to process any personal data disclosed in accordance with applicable data protection regulations and standard contractual clauses.
+
+8. GOVERNING LAW
+This Agreement shall be governed by and interpreted under the laws of the State of California.`,
+};
+
+export interface SampleComparisonPair {
+  id: string;
+  name: string;
+  description: string;
+  contractA: SampleContract;
+  contractB: SampleContract;
+}
+
+export const SAMPLE_COMPARISON_PAIRS: SampleComparisonPair[] = [
+  {
+    id: 'consulting-comparison',
+    name: 'Consulting Agreement: Baseline vs. Counterproposal',
+    description:
+      'Compares baseline agreement (Net-90, unilateral uncapped indemnity, 5-day termination) against counterproposal (Net-30, mutual $50k capped indemnity, mutual 30-day termination, added audit clause).',
+    contractA: SAMPLE_CONSULTING_AGREEMENT,
+    contractB: SAMPLE_REVISED_CONSULTING_AGREEMENT,
+  },
+  {
+    id: 'nda-comparison',
+    name: 'Mutual NDA: Standard vs. Narrowed Scope',
+    description:
+      'Compares standard NDA (perpetual/5-year term, 24-month non-solicit) against narrowed counterproposal (3-year term, 12-month non-solicit, added data protection provision).',
+    contractA: SAMPLE_MUTUAL_NDA,
+    contractB: SAMPLE_REVISED_MUTUAL_NDA,
+  },
+];
+

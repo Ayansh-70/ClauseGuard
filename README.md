@@ -92,6 +92,18 @@ ClauseGuard is an engineered legal-document understanding workstation for commer
 * **Questions for Counsel:** Pre-drafted, pragmatic questions with a 1-click copy button.
 * **Original Document Evidence:** Visually distinguished box containing verbatim contract quotes, clause IDs, page numbers, character offset spans, and green `VERIFIED_EXACT` badges.
 
+### 7. Contract Comparison Workstation UI (Phase 6)
+* **Workstation Mode Switcher:** Seamless header toggle between **Audit Document** and **Compare Contracts** with persistent session state.
+* **Dual Contract Upload Panel:** Side-by-side input slots for **Contract A (Baseline)** and **Contract B (Revised / Proposed)** supporting file picker (`.pdf`, `.txt`, `.md` $\le 500\text{ KB}$), drag-and-drop, and direct text paste.
+* **1-Click Quick-Start Comparison Samples:** Pre-loaded commercial pairs with real substantive differences (Master Consulting Agreement with payment term changes, indemnity modifications, IP carveouts; Mutual NDA with term extensions and definition shifts).
+* **Transparent 4-Stage Progress:** Live tracker showing Document Ingestion $\to$ Structural Clause Alignment $\to$ Gemini Variance Analysis $\to$ Dual-Document Source Verification.
+* **Comparison Metrics & Executive Summary:** High-level summary of revisions, total findings, status breakdown (Changed, Added, Removed, Needs Review, Equivalent), and independent dual-document verification status.
+* **Interactive Filter Toolbar:** Filter by variance status tabs (`All`, `Changed`, `Added in B`, `Removed`, `Needs Review`), filter by category dropdown, search input, and toggle to hide unchanged equivalent provisions.
+* **Side-by-Side Evidence Inspector Modal:**
+  * **Dual Verbatim Evidence:** Side-by-side quotation boxes for Contract A and Contract B with independent verification badges.
+  * **Asymmetric Provision Handling:** Added provisions cleanly indicate *"No corresponding provision found"* in Contract A; removed provisions indicate omission in Contract B.
+  * **Targeted Questions for Counsel:** Tactical questions tailored to negotiate or clarify the revision, with 1-click clipboard copy.
+
 ---
 
 ## Getting Started
@@ -190,7 +202,7 @@ Verified Comparison Result
 ## Verification & Testing Suite
 
 ```bash
-# Run Vitest test suite (104 unit and integration tests across 28 test files)
+# Run Vitest test suite (119 unit and integration tests across 30 test files)
 npm test
 
 # Type-check TypeScript strictly (0 errors)
