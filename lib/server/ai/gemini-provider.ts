@@ -8,6 +8,7 @@ import {
   RawGeminiAuditOutput,
   RawGeminiAuditOutputSchema,
 } from '@/lib/schemas/finding.schema';
+import { ContractCategory, AttentionLevel } from '@/types/domain';
 
 export interface AIProvider {
   generateAudit(context: AuditContext): Promise<RawGeminiAuditOutput>;
@@ -233,33 +234,120 @@ export class MockGeminiProvider implements AIProvider {
       return this.mockResponse;
     }
 
-    // Default realistic mock response grounded in standard test contract
+    const text = context.formatted_context || '';
+
+    // If context contains the specific test contract clause, return standard test response
+    if (text.includes('Contractor agrees to defend and indemnify Client')) {
+      return {
+        summary: `Automated legal audit completed for ${context.file_name}. Identified material indemnity and payment provisions.`,
+        primary_concerns: [
+          'Unilateral indemnification liability shifts third-party defense costs to Contractor.',
+          'Extended payment timeline of Net-90 days with no interest remedies.',
+        ],
+        findings: [
+          {
+            finding_id: 'find_001',
+            clause_id: 'clause_002',
+            affected_clause_ids: ['clause_002'],
+            category: 'INDEMNIFICATION',
+            attention_level: 'HIGH_ATTENTION',
+            title: 'Unilateral Indemnification Obligation',
+            verbatim_quote: 'Contractor agrees to defend and indemnify Client against third-party claims.',
+            plain_language_explanation:
+              'You are required to pay the client’s legal defense costs if they are sued by a third party.',
+            why_it_matters:
+              'This creates uncapped financial exposure that could far exceed the total fees earned under this agreement.',
+            evidence: 'Clause 002 explicitly mandates defense and indemnification without reciprocal obligations.',
+            uncertainty: 'The clause does not specify whether negligence is required to trigger indemnity.',
+            confidence: 0.95,
+            suggested_question_for_counsel:
+              'Can we make this indemnity mutual and cap total liability to the fees paid under this agreement?',
+          },
+        ],
+      };
+    }
+
+    // Dynamic extraction for dev/demo mode: ground findings in whatever document was uploaded
+    const clauseRegex = /\[Clause ID:\s*([a-zA-Z0-9_-]+)[^\]]*\]\r?\n([^\r\n]+)/g;
+    const extractedClauses: { id: string; text: string }[] = [];
+    let match;
+
+    while ((match = clauseRegex.exec(text)) !== null) {
+      extractedClauses.push({
+        id: match[1],
+        text: match[2].trim(),
+      });
+      if (extractedClauses.length >= 6) break;
+    }
+
+    if (extractedClauses.length > 0) {
+      const dynamicFindings = extractedClauses.slice(0, 4).map((c, idx) => {
+        // Extract first clean sentence or up to 100 characters for verbatim quote
+        const sentenceMatch = c.text.match(/^([^.?!]+[.?!])/);
+        const quote = sentenceMatch ? sentenceMatch[1].trim() : c.text.slice(0, Math.min(100, c.text.length)).trim();
+
+        const lower = c.text.toLowerCase();
+        let category: ContractCategory = 'MATERIAL_OBLIGATIONS';
+        let attention: AttentionLevel = 'STANDARD_NOTICE';
+        let title = `Obligation in Clause ${c.id}`;
+
+        if (lower.includes('indemnif')) {
+          category = 'INDEMNIFICATION';
+          attention = 'HIGH_ATTENTION';
+          title = 'Indemnification & Third-Party Exposure';
+        } else if (lower.includes('liab') || lower.includes('damage') || lower.includes('cap')) {
+          category = 'LIABILITY_LIMITS';
+          attention = 'HIGH_ATTENTION';
+          title = 'Limitation of Liability & Damages';
+        } else if (lower.includes('terminat') || lower.includes('cancel')) {
+          category = 'TERMINATION_RIGHTS';
+          attention = 'MEDIUM_ATTENTION';
+          title = 'Termination Provisions & Notice Period';
+        } else if (lower.includes('pay') || lower.includes('fee') || lower.includes('invoic')) {
+          category = 'PAYMENT_TERMS';
+          attention = 'MEDIUM_ATTENTION';
+          title = 'Payment Schedule & Remittance Terms';
+        } else if (lower.includes('confiden') || lower.includes('secret')) {
+          category = 'CONFIDENTIALITY';
+          attention = 'MEDIUM_ATTENTION';
+          title = 'Confidentiality & Non-Disclosure Scope';
+        } else if (lower.includes('intellect') || lower.includes('proprietary') || lower.includes('patent')) {
+          category = 'INTELLECTUAL_PROPERTY';
+          attention = 'HIGH_ATTENTION';
+          title = 'Intellectual Property Ownership & Assignment';
+        }
+
+        return {
+          finding_id: `find_00${idx + 1}`,
+          clause_id: c.id,
+          affected_clause_ids: [c.id],
+          category,
+          attention_level: attention,
+          title,
+          verbatim_quote: quote,
+          plain_language_explanation: `This provision establishes key terms regarding ${title.toLowerCase()} governing the parties.`,
+          why_it_matters: 'Clarifies financial responsibility, timing, or operational constraints under this agreement.',
+          evidence: `Directly excerpted from clause ${c.id}.`,
+          confidence: 0.92,
+          suggested_question_for_counsel: `Are the rights and obligations in this clause mutual and aligned with standard commercial practice?`,
+        };
+      });
+
+      return {
+        summary: `Automated contract analysis completed for ${context.file_name}. Evaluated ${context.total_clauses} clauses and surfaced key commercial observations.`,
+        primary_concerns: [
+          'Review allocation of liabilities and indemnification triggers with legal counsel.',
+          'Confirm payment milestones, invoice dispute timelines, and termination provisions.',
+        ],
+        findings: dynamicFindings,
+      };
+    }
+
+    // Fallback if no clauses parsed
     return {
-      summary: `Automated legal audit completed for ${context.file_name}. Identified material indemnity and payment provisions.`,
-      primary_concerns: [
-        'Unilateral indemnification liability shifts third-party defense costs to Contractor.',
-        'Extended payment timeline of Net-90 days with no interest remedies.',
-      ],
-      findings: [
-        {
-          finding_id: 'find_001',
-          clause_id: 'clause_002',
-          affected_clause_ids: ['clause_002'],
-          category: 'INDEMNIFICATION',
-          attention_level: 'HIGH_ATTENTION',
-          title: 'Unilateral Indemnification Obligation',
-          verbatim_quote: 'Contractor agrees to defend and indemnify Client against third-party claims.',
-          plain_language_explanation:
-            'You are required to pay the client’s legal defense costs if they are sued by a third party.',
-          why_it_matters:
-            'This creates uncapped financial exposure that could far exceed the total fees earned under this agreement.',
-          evidence: 'Clause 002 explicitly mandates defense and indemnification without reciprocal obligations.',
-          uncertainty: 'The clause does not specify whether negligence is required to trigger indemnity.',
-          confidence: 0.95,
-          suggested_question_for_counsel:
-            'Can we make this indemnity mutual and cap total liability to the fees paid under this agreement?',
-        },
-      ],
+      summary: `Automated legal audit completed for ${context.file_name}.`,
+      primary_concerns: ['No material risk clauses detected.'],
+      findings: [],
     };
   }
 }

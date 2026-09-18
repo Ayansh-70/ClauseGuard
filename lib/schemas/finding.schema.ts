@@ -5,6 +5,7 @@ export const AttentionLevelSchema = z.enum([
   'MEDIUM_ATTENTION',
   'LOW_ATTENTION',
   'INFORMATIONAL',
+  'STANDARD_NOTICE',
 ]);
 
 export const SeveritySchema = z.enum(['low', 'medium', 'high', 'informational']);
@@ -82,6 +83,9 @@ export const AuditMetadataSchema = z.object({
   verified_count: z.number().int().nonnegative(),
   unverified_count: z.number().int().nonnegative(),
   rejected_count: z.number().int().nonnegative(),
+  file_name: z.string().optional(),
+  page_count: z.number().int().nonnegative().optional(),
+  character_count: z.number().int().nonnegative().optional(),
 });
 
 export const AuditResultSchema = z.object({

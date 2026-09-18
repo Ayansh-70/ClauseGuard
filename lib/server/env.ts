@@ -12,6 +12,7 @@ const ServerEnvSchema = z.object({
   GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
   GEMINI_TIMEOUT_MS: z.coerce.number().default(30000),
   LIVE_GEMINI_TEST: z.string().optional(),
+  USE_MOCK_AI: z.string().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });
 
@@ -23,6 +24,7 @@ function loadServerEnv(): ServerEnv {
     GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
     GEMINI_TIMEOUT_MS: process.env.GEMINI_TIMEOUT_MS || 30000,
     LIVE_GEMINI_TEST: process.env.LIVE_GEMINI_TEST,
+    USE_MOCK_AI: process.env.USE_MOCK_AI,
     NODE_ENV: process.env.NODE_ENV,
   });
 

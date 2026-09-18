@@ -1,6 +1,6 @@
 import 'server-only';
 import { AuditResult, StructuredDocument } from '@/types/domain';
-import { AIProvider, GoogleGeminiProvider } from './gemini-provider';
+import { AIProvider, GoogleGeminiProvider, MockGeminiProvider } from './gemini-provider';
 import { buildAuditContext } from './context-builder';
 import { verifyFindings, VerificationOptions } from './quote-verifier';
 import { AuditResultSchema } from '@/lib/schemas/finding.schema';
@@ -17,7 +17,13 @@ export class LegalAuditService {
   private provider: AIProvider;
 
   constructor(provider?: AIProvider) {
-    this.provider = provider || new GoogleGeminiProvider();
+    if (provider) {
+      this.provider = provider;
+    } else if (!process.env.GEMINI_API_KEY || process.env.USE_MOCK_AI === 'true') {
+      this.provider = new MockGeminiProvider();
+    } else {
+      this.provider = new GoogleGeminiProvider();
+    }
   }
 
   /**
@@ -62,6 +68,8 @@ export class LegalAuditService {
       });
     }
 
+    const isMock = !process.env.GEMINI_API_KEY || process.env.USE_MOCK_AI === 'true';
+
     const auditResult: AuditResult = {
       document_id: document.metadata.document_id,
       summary: rawOutput.summary,
@@ -70,13 +78,18 @@ export class LegalAuditService {
       primary_concerns: rawOutput.primary_concerns,
       metadata: {
         audited_at: new Date().toISOString(),
-        model_used: options.modelName || process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+        model_used: isMock
+          ? 'deterministic-evaluator (dev/demo)'
+          : (options.modelName || process.env.GEMINI_MODEL || 'gemini-2.5-flash'),
         duration_ms: durationMs,
         total_clauses_analyzed: document.clauses.length,
         total_findings_count: verification.total_analyzed,
         verified_count: verification.verified_count,
         unverified_count: verification.unverified_count,
         rejected_count: verification.rejected_count,
+        file_name: document.metadata.file_name,
+        page_count: document.metadata.page_count,
+        character_count: document.metadata.character_count,
       },
     };
 

@@ -9,7 +9,8 @@ export type AttentionLevel =
   | 'HIGH_ATTENTION'
   | 'MEDIUM_ATTENTION'
   | 'LOW_ATTENTION'
-  | 'INFORMATIONAL';
+  | 'INFORMATIONAL'
+  | 'STANDARD_NOTICE';
 
 // Standard commercial contract dimensions
 export type ContractCategory =
@@ -193,6 +194,9 @@ export interface AuditMetadata {
   verified_count: number;
   unverified_count: number;
   rejected_count: number;
+  file_name?: string;
+  page_count?: number;
+  character_count?: number;
 }
 
 /**
