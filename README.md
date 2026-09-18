@@ -149,12 +149,48 @@ Audits a legal document using grounded inference with independent source verific
 3. `application/json` (Pre-Structured Document):
    - `document`: Canonical `StructuredDocument` object
 
+### `POST /api/v1/compare` (Phase 5)
+Compares two legal contracts (Contract A baseline vs Contract B revised draft) using deterministic clause alignment, Gemini semantic comparison, and independent dual-source quote verification.
+
+```text
+Document A + Document B
+       │
+       ▼
+Deterministic Ingestion (Phase 2)
+       │
+Deterministic Clause Alignment (outline numbers, section headings, stem similarity)
+       │
+Bounded Comparison Context (<untrusted_contract_a>, <untrusted_contract_b>)
+       │
+Gemini 2.5 Flash / Mock Provider (structured JSON output)
+       │
+Strict Zod Schema Validation (Level 1)
+       │
+Independent Dual Source Quote Verification (Level 2: Doc A + Doc B)
+       │
+Verified Comparison Result
+```
+
+**Supported Content-Types:**
+1. `multipart/form-data`:
+   - `file_a` & `file_b`: Contract files (`.pdf`, `.txt`, `.md` up to 500 KB each)
+   - `reject_unverified`: optional boolean (default: `true`)
+2. `application/json` (Nested Objects):
+   - `contract_a`: `{ raw_text: string, file_name?: string }` or `{ document: StructuredDocument }`
+   - `contract_b`: `{ raw_text: string, file_name?: string }` or `{ document: StructuredDocument }`
+   - `reject_unverified`: optional boolean (default: `true`)
+3. `application/json` (Flat Structure):
+   - `raw_text_a`, `raw_text_b`, `file_name_a?`, `file_name_b?`
+
+**Evidence Verification Note:**
+> Displayed source quotes are independently checked against the uploaded documents. Verification means the quoted evidence exists in the source document; it does not mean the AI's legal interpretation is guaranteed to be legally binding or correct. Consult qualified legal counsel.
+
 ---
 
 ## Verification & Testing Suite
 
 ```bash
-# Run Vitest test suite (77 unit and integration tests)
+# Run Vitest test suite (104 unit and integration tests across 28 test files)
 npm test
 
 # Type-check TypeScript strictly (0 errors)

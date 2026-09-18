@@ -264,3 +264,120 @@ export interface IngestionResult {
     details?: unknown;
   };
 }
+
+/**
+ * ============================================================================
+ * Phase 5: Contract Comparison Domain Types
+ * ============================================================================
+ */
+
+export type ComparisonStatus = 'same' | 'changed' | 'added' | 'removed' | 'ambiguous';
+
+export type ComparisonCategory =
+  | 'payment'
+  | 'fees'
+  | 'term'
+  | 'renewal'
+  | 'termination'
+  | 'obligations'
+  | 'liability'
+  | 'indemnity'
+  | 'intellectual_property'
+  | 'confidentiality'
+  | 'data_protection'
+  | 'restrictions'
+  | 'non_compete'
+  | 'non_solicitation'
+  | 'warranties'
+  | 'dispute_resolution'
+  | 'governing_law'
+  | 'jurisdiction'
+  | 'miscellaneous'
+  | (string & {});
+
+/**
+ * Independent source reference for a contract in a comparison finding
+ */
+export interface ComparisonSourceReference {
+  document_id: string;
+  clause_id: string;
+  section_id?: string;
+  page_number?: number;
+  exact_quote: string;
+  matched_range?: {
+    start: number;
+    end: number;
+  };
+  number_label?: string;
+}
+
+/**
+ * An individual finding comparing two contracts
+ */
+export interface ComparisonFinding {
+  id: string; // e.g. "comp_001"
+  status: ComparisonStatus;
+  category: string;
+  title: string;
+  plain_english_summary: string;
+  practical_implication: string;
+  attention_level: AttentionLevel;
+  contract_a_source?: ComparisonSourceReference;
+  contract_b_source?: ComparisonSourceReference;
+  confidence: number;
+  verification_status: VerificationStatus;
+  suggested_question_for_counsel?: string;
+}
+
+/**
+ * Metadata for an executed comparison run
+ */
+export interface ComparisonMetadata {
+  comparison_id: string;
+  contract_a_metadata: DocumentMetadata;
+  contract_b_metadata: DocumentMetadata;
+  timestamp: string;
+  provider_used: string;
+  model_used: string;
+  prompt_version: string;
+  processing_status: 'completed' | 'failed' | 'partial';
+  duration_ms: number;
+  aligned_pairs_count: number;
+  total_findings_count: number;
+  verified_findings_count: number;
+  unverified_findings_count: number;
+  rejected_findings_count: number;
+  disclaimer: string;
+}
+
+/**
+ * Complete Grounded Contract Comparison Result
+ */
+export interface ComparisonResult {
+  comparison_id: string;
+  summary: string;
+  findings: ComparisonFinding[];
+  rejected_findings?: ComparisonFinding[];
+  metadata: ComparisonMetadata;
+  disclaimer: string;
+}
+
+/**
+ * Deterministic clause-to-clause alignment between two contracts
+ */
+export interface AlignedClausePair {
+  pair_id: string;
+  alignment_type: 'ALIGNED' | 'CONTRACT_A_ONLY' | 'CONTRACT_B_ONLY';
+  clause_a?: Clause;
+  clause_b?: Clause;
+  similarity_score: number;
+  match_rationale: string;
+}
+
+export interface AlignmentResult {
+  pairs: AlignedClausePair[];
+  aligned_count: number;
+  a_only_count: number;
+  b_only_count: number;
+}
+
