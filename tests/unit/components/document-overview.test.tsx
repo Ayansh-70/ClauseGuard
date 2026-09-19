@@ -141,4 +141,38 @@ describe('DocumentOverview Component', () => {
     fireEvent.click(resetBtn);
     expect(onReset).toHaveBeenCalledTimes(1);
   });
+
+  it('renders Export Report button and toggles print and markdown options', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <DocumentOverview
+        fileName="Master_Services_Agreement.pdf"
+        documentId="doc_abc123"
+        metadata={mockMetadata}
+        onReset={vi.fn()}
+      />
+    );
+
+    const exportBtn = screen.getByRole('button', { name: /Export Report/i });
+    expect(exportBtn).toBeDefined();
+
+    // Dropdown should initially be closed
+    expect(screen.queryByText('Print / Save as PDF')).toBeNull();
+
+    // Open dropdown
+    fireEvent.click(exportBtn);
+    expect(screen.getByText('Print / Save as PDF')).toBeDefined();
+    expect(screen.getByText('Download Markdown (.md)')).toBeDefined();
+
+    // Click Print / Save as PDF
+    const printBtn = screen.getByText('Print / Save as PDF');
+    fireEvent.click(printBtn);
+    expect(openSpy).toHaveBeenCalledWith(
+      '/api/v1/export/report?id=doc_abc123&format=html',
+      '_blank'
+    );
+
+    openSpy.mockRestore();
+  });
 });

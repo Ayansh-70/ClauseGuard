@@ -4,6 +4,7 @@ import { comparisonService } from '@/lib/server/ai/comparison-service';
 import { ingestRawText, ingestFileBuffer } from '@/lib/domain/ingestion-pipeline';
 import { AppError, toSafeAppError } from '@/lib/errors/app-error';
 import { StructuredDocument } from '@/types/domain';
+import { reportStore } from '@/lib/server/report-store';
 
 export const runtime = 'nodejs';
 
@@ -126,6 +127,9 @@ export async function POST(req: NextRequest) {
     const comparisonResult = await comparisonService.compareDocuments(docA, docB, {
       rejectUnverified,
     });
+
+    // Cache verified comparison result in server-side report store for export retrieval
+    reportStore.saveComparisonResult(comparisonResult);
 
     return NextResponse.json(comparisonResult, { status: 200 });
   } catch (err: unknown) {

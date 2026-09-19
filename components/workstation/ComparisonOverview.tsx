@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowLeftRight, Clock, Layers, RotateCcw, ShieldCheck } from 'lucide-react';
+import { ArrowLeftRight, Clock, Layers, RotateCcw, ShieldCheck, Download, Printer, FileText, ChevronDown } from 'lucide-react';
 import { ComparisonMetadata } from '@/types/domain';
 
 interface ComparisonOverviewProps {
@@ -15,6 +15,29 @@ export function ComparisonOverview({
   metadata,
   onReset,
 }: ComparisonOverviewProps) {
+  const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
+  const exportMenuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleExportHtml = () => {
+    setExportMenuOpen(false);
+    window.open(`/api/v1/export/comparison-report?id=${encodeURIComponent(metadata.comparison_id)}&format=html`, '_blank');
+  };
+
+  const handleExportMarkdown = () => {
+    setExportMenuOpen(false);
+    window.location.href = `/api/v1/export/comparison-report?id=${encodeURIComponent(metadata.comparison_id)}&format=markdown&download=true`;
+  };
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-5">
       {/* Top bar: Document names & Reset */}
@@ -38,14 +61,58 @@ export function ComparisonOverview({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onReset}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 self-start md:self-auto"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>New Comparison</span>
-        </button>
+        <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+          {/* Export Comparison Dropdown */}
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              type="button"
+              onClick={() => setExportMenuOpen((prev) => !prev)}
+              aria-haspopup="true"
+              aria-expanded={exportMenuOpen}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg text-amber-900 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-300 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5 text-amber-700" />
+              <span>Export Comparison</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-amber-700 transition-transform ${exportMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {exportMenuOpen && (
+              <div className="absolute right-0 mt-1.5 w-64 rounded-lg bg-white border border-slate-200 shadow-lg py-1 z-20 focus:outline-none">
+                <button
+                  type="button"
+                  onClick={handleExportHtml}
+                  className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-900 flex items-center gap-2.5 transition-colors"
+                >
+                  <Printer className="w-4 h-4 text-slate-500 shrink-0" />
+                  <div>
+                    <div className="font-bold text-slate-900">Print / Save as PDF</div>
+                    <div className="text-[10px] text-slate-500">Executive Redline HTML</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportMarkdown}
+                  className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-900 flex items-center gap-2.5 transition-colors border-t border-slate-100"
+                >
+                  <FileText className="w-4 h-4 text-slate-500 shrink-0" />
+                  <div>
+                    <div className="font-bold text-slate-900">Download Markdown (.md)</div>
+                    <div className="text-[10px] text-slate-500">Comparison Memorandum</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={onReset}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 shrink-0"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>New Comparison</span>
+          </button>
+        </div>
       </div>
 
       {/* Summary Narrative */}

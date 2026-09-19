@@ -3,6 +3,7 @@ import { StructuredDocumentSchema } from '@/lib/schemas/document.schema';
 import { legalAuditService } from '@/lib/server/ai/legal-audit-service';
 import { ingestRawText, ingestFileBuffer } from '@/lib/domain/ingestion-pipeline';
 import { AppError, toSafeAppError } from '@/lib/errors/app-error';
+import { reportStore } from '@/lib/server/report-store';
 
 export const runtime = 'nodejs';
 
@@ -78,6 +79,9 @@ export async function POST(req: NextRequest) {
     const auditResult = await legalAuditService.auditDocument(structuredDoc, {
       rejectUnverified,
     });
+
+    // Cache verified audit result in server-side report store for export retrieval
+    reportStore.saveAuditResult(auditResult);
 
     return NextResponse.json(auditResult, { status: 200 });
   } catch (err: unknown) {

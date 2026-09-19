@@ -6,6 +6,7 @@ import { ComparisonMetricsBar } from '@/components/workstation/ComparisonMetrics
 import { ComparisonFindingCard } from '@/components/workstation/ComparisonFindingCard';
 import { ComparisonDetailModal } from '@/components/workstation/ComparisonDetailModal';
 import { ComparisonFilterToolbar } from '@/components/workstation/ComparisonFilterToolbar';
+import { ComparisonOverview } from '@/components/workstation/ComparisonOverview';
 import { ComparisonFinding, ComparisonMetadata } from '@/types/domain';
 
 const mockFindings: ComparisonFinding[] = [
@@ -330,6 +331,114 @@ describe('Comparison UI Components', () => {
       const categorySelect = screen.getByLabelText('Filter findings by category');
       fireEvent.change(categorySelect, { target: { value: 'payment' } });
       expect(onCategoryChange).toHaveBeenCalledWith('payment');
+    });
+  });
+
+  describe('ComparisonOverview Component', () => {
+    const mockDocMetaA = {
+      document_id: 'doc_alpha',
+      file_name: 'Alpha_Contract.pdf',
+      file_size_bytes: 1000,
+      format: 'application/pdf' as const,
+      extension: 'pdf' as const,
+      created_at: '2026-09-19T10:00:00.000Z',
+      sha256_hash: 'hash_alpha',
+      page_count: 2,
+      character_count: 1200,
+      word_count: 200,
+    };
+
+    const mockDocMetaB = {
+      document_id: 'doc_beta',
+      file_name: 'Beta_Contract.pdf',
+      file_size_bytes: 1200,
+      format: 'application/pdf' as const,
+      extension: 'pdf' as const,
+      created_at: '2026-09-19T10:00:00.000Z',
+      sha256_hash: 'hash_beta',
+      page_count: 2,
+      character_count: 1400,
+      word_count: 220,
+    };
+
+    const mockCompMetadata: ComparisonMetadata = {
+      comparison_id: 'comp_test_overview_123',
+      timestamp: '2026-09-19T10:00:00.000Z',
+      contract_a_metadata: mockDocMetaA,
+      contract_b_metadata: mockDocMetaB,
+      aligned_pairs_count: 10,
+      total_findings_count: 3,
+      verified_findings_count: 3,
+      unverified_findings_count: 0,
+      rejected_findings_count: 0,
+      duration_ms: 2100,
+      provider_used: 'mock',
+      model_used: 'mock-gemini',
+      prompt_version: '1.0',
+      processing_status: 'completed',
+      disclaimer: 'Legal Information Only',
+    };
+
+    it('renders comparison filenames, summary, and metadata telemetry', () => {
+      render(
+        <ComparisonOverview
+          summary="Substantive changes in payment and liability."
+          metadata={mockCompMetadata}
+          onReset={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText('Alpha_Contract.pdf')).toBeDefined();
+      expect(screen.getByText('Beta_Contract.pdf')).toBeDefined();
+      expect(screen.getByText('Substantive changes in payment and liability.')).toBeDefined();
+      expect(screen.getByText(/ID: comp_test_overview_123/i)).toBeDefined();
+    });
+
+    it('renders Export Comparison dropdown and opens HTML print view on click', () => {
+      const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+      render(
+        <ComparisonOverview
+          summary="Substantive changes in payment and liability."
+          metadata={mockCompMetadata}
+          onReset={vi.fn()}
+        />
+      );
+
+      const exportBtn = screen.getByRole('button', { name: /Export Comparison/i });
+      expect(exportBtn).toBeDefined();
+
+      // Dropdown closed initially
+      expect(screen.queryByText('Print / Save as PDF')).toBeNull();
+
+      // Toggle dropdown open
+      fireEvent.click(exportBtn);
+      expect(screen.getByText('Print / Save as PDF')).toBeDefined();
+      expect(screen.getByText('Download Markdown (.md)')).toBeDefined();
+
+      // Click Print / Save as PDF
+      fireEvent.click(screen.getByText('Print / Save as PDF'));
+      expect(openSpy).toHaveBeenCalledWith(
+        '/api/v1/export/comparison-report?id=comp_test_overview_123&format=html',
+        '_blank'
+      );
+
+      openSpy.mockRestore();
+    });
+
+    it('triggers onReset when clicking New Comparison', () => {
+      const onReset = vi.fn();
+      render(
+        <ComparisonOverview
+          summary="Summary"
+          metadata={mockCompMetadata}
+          onReset={onReset}
+        />
+      );
+
+      const newCompBtn = screen.getByRole('button', { name: /New Comparison/i });
+      fireEvent.click(newCompBtn);
+      expect(onReset).toHaveBeenCalledTimes(1);
     });
   });
 });

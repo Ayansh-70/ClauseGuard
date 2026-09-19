@@ -16,6 +16,8 @@ export type AppErrorCode =
   | 'AI_PROVIDER_ERROR'
   | 'SECURITY_REJECTED'
   | 'SOURCE_VERIFICATION_FAILED'
+  | 'REPORT_NOT_FOUND'
+  | 'INVALID_REQUEST'
   | 'INTERNAL_ERROR';
 
 export interface PublicErrorResponse {
