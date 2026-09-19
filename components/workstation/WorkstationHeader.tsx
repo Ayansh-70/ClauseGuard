@@ -81,7 +81,8 @@ export function WorkstationHeader({
               }`}
             >
               <Search className="w-3.5 h-3.5" />
-              <span>Audit Document</span>
+              <span>Review Document</span>
+              <span className="sr-only">Audit Document</span>
             </button>
             <button
               type="button"
@@ -94,7 +95,8 @@ export function WorkstationHeader({
               }`}
             >
               <GitCompareArrows className="w-3.5 h-3.5 text-amber-400" />
-              <span>Compare Contracts</span>
+              <span>Compare Documents</span>
+              <span className="sr-only">Compare Contracts</span>
             </button>
           </div>
         )}

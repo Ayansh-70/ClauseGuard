@@ -104,6 +104,17 @@ ClauseGuard is an engineered legal-document understanding workstation for commer
   * **Asymmetric Provision Handling:** Added provisions cleanly indicate *"No corresponding provision found"* in Contract A; removed provisions indicate omission in Contract B.
   * **Targeted Questions for Counsel:** Tactical questions tailored to negotiate or clarify the revision, with 1-click clipboard copy.
 
+### 8. Legal Document Intelligence Workstation (Phase 8)
+* **Unified Product Story:** Transforms dense legal analysis into a clear operational narrative: `UNDERSTAND` → `IDENTIFY WHAT MATTERS` → `VERIFY AGAINST THE DOCUMENT` → `UNDERSTAND WHAT CHANGED` → `KNOW WHAT TO ASK NEXT`.
+* **Immediate 3-Question Executive Summary:** Answers the operator's first 3 questions within 5 seconds:
+  1. *What kind of document is this?* (Contract classification & scope)
+  2. *How much deserves attention?* (Total observations & attention priority breakdown)
+  3. *Where should I look first?* (Verified quote count & grounded evidence integrity)
+* **Deterministic Priority Review ("Start Here"):** Prominently features the top 2–3 high-attention provisions with rank badges, plain-English explanations, commercial consequences ("Why it matters"), and direct one-click inspect actions.
+* **Executive Change Story by Category:** Categorizes comparison findings into a human-readable narrative by commercial subject matter (payment terms, indemnities, audit rights, liability) rather than an undifferentiated list of clauses.
+* **Evidence Grounding Chain:** Makes the core technical differentiator visible across finding cards and detail modals: `AI Observation` → `Source Quote` → `✓ Matched in Document`.
+* **Clean 2-Action Landing State:** Clear choice between "Review a Document" and "Compare Two Documents" with instant 1-click sample loaders for judges and evaluators.
+
 ---
 
 ## Getting Started

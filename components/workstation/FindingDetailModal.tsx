@@ -99,6 +99,26 @@ export function FindingDetailModal({ finding, onClose }: FindingDetailModalProps
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6 text-slate-800">
+          {/* Grounded Evidence Trace Breadcrumb */}
+          <div className="bg-slate-100/90 border border-slate-200 rounded-xl p-3.5 text-xs flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-800">Evidence Grounding Chain:</span>
+              <span className="text-slate-600 text-[11px] font-medium">
+                AI Observation ──► Source Quote ──► Matched in Document
+              </span>
+            </div>
+            {isVerified ? (
+              <span className="inline-flex items-center gap-1 font-bold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full text-[11px] border border-emerald-300">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Verified Match in Document</span>
+              </span>
+            ) : (
+              <span className="text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-amber-300">
+                Unverified Excerpt
+              </span>
+            )}
+          </div>
+
           {/* 1. Plain-English Summary */}
           <div className="space-y-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">

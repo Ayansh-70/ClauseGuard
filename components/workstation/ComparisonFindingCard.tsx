@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowRight, ShieldCheck, FileText, ArrowLeftRight } from 'lucide-react';
+import { ArrowRight, ShieldCheck, FileText, ArrowLeftRight, HelpCircle } from 'lucide-react';
 import { ComparisonFinding } from '@/types/domain';
 import { ComparisonStatusBadge } from './ComparisonStatusBadge';
 import { AttentionBadge } from './AttentionBadge';
@@ -34,7 +34,7 @@ export function ComparisonFindingCard({
       aria-label={`Inspect finding: ${finding.title}`}
     >
       <div className="space-y-3">
-        {/* Badges row */}
+        {/* Badges row: Category + Status + Attention */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 flex-wrap">
             <ComparisonStatusBadge status={finding.status} />
@@ -46,14 +46,24 @@ export function ComparisonFindingCard({
         </div>
 
         {/* Title */}
-        <h3 className="text-sm font-bold text-slate-900 group-hover:text-amber-900 transition-colors">
+        <h3 className="text-sm font-bold text-slate-900 group-hover:text-amber-700 transition-colors leading-snug">
           {finding.title}
         </h3>
 
-        {/* Plain English Summary */}
+        {/* What Changed (Plain-English Summary) */}
         <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">
           {finding.plain_english_summary}
         </p>
+
+        {/* Why It Matters (Commercial Implication) */}
+        {finding.practical_implication && (
+          <div className="bg-amber-50/50 border-l-2 border-amber-500 p-2.5 rounded-r-md text-xs text-slate-700">
+            <span className="font-bold text-amber-900 block text-[10px] uppercase tracking-wider mb-0.5">
+              Why it matters:
+            </span>
+            <p className="line-clamp-2 text-slate-600">{finding.practical_implication}</p>
+          </div>
+        )}
 
         {/* Clause Pointers */}
         <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2 text-[11px] text-slate-500 font-mono">
@@ -90,24 +100,37 @@ export function ComparisonFindingCard({
       </div>
 
       {/* Footer: Verification status & CTA */}
-      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-1 text-[11px]">
-          {isVerified ? (
-            <span className="text-emerald-700 flex items-center gap-1 font-medium">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Quotes Verified</span>
-            </span>
-          ) : (
-            <span className="text-amber-700 font-medium">
-              <span>Unverified</span>
-            </span>
-          )}
+      <div className="pt-2 border-t border-slate-100 flex flex-col gap-2 text-xs">
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1 text-[11px]">
+            {isVerified ? (
+              <span className="text-emerald-700 flex items-center gap-1 font-medium bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Quotes Verified</span>
+              </span>
+            ) : (
+              <span className="text-amber-700 text-[10px] font-medium bg-amber-50 px-1.5 py-0.5 rounded">
+                Under Review
+              </span>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 group-hover:text-amber-800 group-hover:translate-x-0.5 transition-all"
+          >
+            <span>Inspect evidence</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        <span className="text-amber-700 font-bold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform text-xs">
-          <span>View Evidence</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </span>
+        {/* Question for Counsel indicator */}
+        {finding.suggested_question_for_counsel && (
+          <div className="flex items-center gap-1 text-[10px] text-slate-500 pt-0.5">
+            <HelpCircle className="w-3 h-3 text-amber-600 shrink-0" />
+            <span className="truncate">Counsel question available</span>
+          </div>
+        )}
       </div>
     </div>
   );

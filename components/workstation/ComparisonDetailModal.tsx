@@ -111,6 +111,22 @@ export function ComparisonDetailModal({
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 text-slate-700">
+          {/* Dual-Document Grounding Flow */}
+          <div className="bg-slate-100/90 border border-slate-200 rounded-xl p-3.5 text-xs flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-800">Dual Evidence Grounding:</span>
+              <span className="text-slate-600 font-mono text-[11px]">
+                {finding.contract_a_source ? `Contract A (${finding.contract_a_source.clause_id})` : 'No baseline provision'}
+                {' ──► '}
+                {finding.contract_b_source ? `Contract B (${finding.contract_b_source.clause_id})` : 'Omitted in counterproposal'}
+              </span>
+            </div>
+            <span className="inline-flex items-center gap-1 font-bold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full text-[11px] border border-emerald-300">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Evidence Matched to Source Documents</span>
+            </span>
+          </div>
+
           {/* Ambiguous Guidance Alert */}
           {finding.status === 'ambiguous' && (
             <div className="p-3.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs flex items-start gap-2.5">

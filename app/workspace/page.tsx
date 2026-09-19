@@ -16,9 +16,11 @@ import {
 } from '@/components/workstation/FilterSortToolbar';
 import { FindingCard } from '@/components/workstation/FindingCard';
 import { FindingDetailModal } from '@/components/workstation/FindingDetailModal';
+import { PriorityReviewSection } from '@/components/workstation/PriorityReviewSection';
 import { ErrorAlert } from '@/components/workstation/ErrorAlert';
 
 // Comparison Components
+import { ComparisonChangeStory } from '@/components/workstation/ComparisonChangeStory';
 import {
   ComparisonInputPanel,
   ContractInputData,
@@ -523,6 +525,78 @@ export default function WorkspacePage() {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Unified Workstation Value Header (When no results loaded) */}
+        {!auditResult && !comparisonResult && (
+          <div className="text-center space-y-3 max-w-3xl mx-auto pt-2 pb-2 animate-in fade-in duration-150">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-900 text-amber-300 text-xs font-semibold tracking-wide border border-slate-800 shadow-sm">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+              <span>Grounded Contract Intelligence Workstation</span>
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+              Understand what matters. <br className="hidden sm:inline" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700">
+                Verify every finding against the source.
+              </span>
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              Review a commercial agreement to surface prioritized obligations and risks, or compare two versions side-by-side to see what changed without reading line by line.
+            </p>
+
+            {/* Quick 2-Action Selection Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left pt-3 max-w-2xl mx-auto">
+              <button
+                type="button"
+                onClick={() => handleModeChange('audit')}
+                className={`p-4 rounded-xl border transition-all text-left flex flex-col justify-between ${
+                  activeMode === 'audit'
+                    ? 'bg-white border-amber-400 shadow-sm ring-2 ring-amber-400/20'
+                    : 'bg-white/80 border-slate-200 hover:border-slate-300 hover:bg-white'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs">
+                      1
+                    </span>
+                    Review a Document
+                  </span>
+                  {activeMode === 'audit' && (
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Selected</span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Turn dense legal language into clear, prioritized findings with verified evidence and counsel questions.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleModeChange('compare')}
+                className={`p-4 rounded-xl border transition-all text-left flex flex-col justify-between ${
+                  activeMode === 'compare'
+                    ? 'bg-white border-amber-400 shadow-sm ring-2 ring-amber-400/20'
+                    : 'bg-white/80 border-slate-200 hover:border-slate-300 hover:bg-white'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs">
+                      2
+                    </span>
+                    Compare Two Documents
+                  </span>
+                  {activeMode === 'compare' && (
+                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Selected</span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Align corresponding clauses and see what changed between versions without reading line by line.
+                </p>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ================================================================= */}
         {/* MODE A: SINGLE DOCUMENT AUDIT */}
         {/* ================================================================= */}
@@ -641,6 +715,12 @@ export default function WorkspacePage() {
                   primaryConcerns={auditResult.primary_concerns}
                 />
 
+                {/* Priority Review — Start Here */}
+                <PriorityReviewSection
+                  findings={auditResult.findings}
+                  onSelectFinding={setSelectedFinding}
+                />
+
                 <MetricsBar
                   findings={auditResult.findings}
                   metadata={auditResult.metadata}
@@ -740,6 +820,12 @@ export default function WorkspacePage() {
                   summary={comparisonResult.summary}
                   metadata={comparisonResult.metadata}
                   onReset={handleResetComparison}
+                />
+
+                {/* Executive Change Story by Category */}
+                <ComparisonChangeStory
+                  findings={comparisonResult.findings}
+                  onSelectFinding={setSelectedComparisonFinding}
                 />
 
                 {/* Metrics Breakdown */}

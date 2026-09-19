@@ -120,7 +120,7 @@ describe('Browser Storage Privacy Audit (No Sensitive Contract Storage)', () => 
 
       // Wait for completion
       await waitFor(() => {
-        expect(screen.getByText('Sensitive Proprietary Obligation')).toBeDefined();
+        expect(screen.getAllByText('Sensitive Proprietary Obligation')[0]).toBeDefined();
       });
 
       // Verify that NO sensitive fields were stored in sessionStorage
