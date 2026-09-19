@@ -72,6 +72,7 @@ export function ComparisonDetailModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="comparison-finding-title"
+      onClick={onClose}
     >
       <div
         className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150"

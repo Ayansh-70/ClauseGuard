@@ -58,6 +58,7 @@ export function FindingDetailModal({ finding, onClose }: FindingDetailModalProps
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-finding-title"
+      onClick={onClose}
     >
       <div
         className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full overflow-hidden my-8 max-h-[90vh] flex flex-col"

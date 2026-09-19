@@ -115,13 +115,10 @@ export function ComparisonFindingCard({
             )}
           </div>
 
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 group-hover:text-amber-800 group-hover:translate-x-0.5 transition-all"
-          >
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 group-hover:text-amber-800 group-hover:translate-x-0.5 transition-all">
             <span>Inspect evidence</span>
             <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          </span>
         </div>
 
         {/* Question for Counsel indicator */}

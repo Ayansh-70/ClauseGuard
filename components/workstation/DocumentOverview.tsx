@@ -73,6 +73,7 @@ export function DocumentOverview({
         </div>
 
         <button
+          type="button"
           onClick={onReset}
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors shrink-0"
         >
