@@ -9,6 +9,7 @@ import {
   HelpCircle,
   ArrowLeftRight,
   AlertTriangle,
+  Compass,
 } from 'lucide-react';
 import { ComparisonFinding } from '@/types/domain';
 import { ComparisonStatusBadge } from './ComparisonStatusBadge';
@@ -18,11 +19,13 @@ import { SHORT_DISCLAIMER } from '@/lib/constants/disclaimers';
 interface ComparisonDetailModalProps {
   finding: ComparisonFinding | null;
   onClose: () => void;
+  onViewEvidence?: (finding: ComparisonFinding) => void;
 }
 
 export function ComparisonDetailModal({
   finding,
   onClose,
+  onViewEvidence,
 }: ComparisonDetailModalProps) {
   const [copiedQuestion, setCopiedQuestion] = useState(false);
 
@@ -164,29 +167,47 @@ export function ComparisonDetailModal({
 
           {/* PRIMARY SIDE-BY-SIDE EVIDENCE COMPARISON */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                 <ArrowLeftRight className="w-3.5 h-3.5 text-amber-600" />
                 <span>Side-by-Side Source Evidence</span>
               </h3>
-              <span className="text-[11px] text-slate-400 hidden sm:block">
-                Exact verbatim excerpts highlighted from each agreement
-              </span>
+              {onViewEvidence && (
+                <button
+                  type="button"
+                  onClick={() => onViewEvidence(finding)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 hover:text-amber-900 bg-amber-100/80 hover:bg-amber-200/80 border border-amber-300 px-3 py-1 rounded-lg transition-colors shadow-2xs"
+                >
+                  <Compass className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Open in Evidence Navigator</span>
+                </button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* ================= CONTRACT A EVIDENCE ================= */}
               <div className="border border-blue-200 bg-blue-50/20 rounded-xl p-4 flex flex-col justify-between space-y-3">
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between border-b border-blue-100 pb-2">
+                  <div className="flex items-center justify-between border-b border-blue-100 pb-2 flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-blue-600"></span>
                       <span className="text-xs font-bold text-blue-950">Contract A (Baseline)</span>
                     </div>
                     {finding.contract_a_source && (
-                      <span className="text-[10px] font-mono text-blue-800 bg-blue-100/70 px-1.5 py-0.5 rounded">
-                        {finding.contract_a_source.clause_id}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-mono text-blue-800 bg-blue-100/70 px-1.5 py-0.5 rounded">
+                          {finding.contract_a_source.clause_id}
+                        </span>
+                        {onViewEvidence && (
+                          <button
+                            type="button"
+                            onClick={() => onViewEvidence(finding)}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-2 py-0.5 rounded transition-colors"
+                          >
+                            <span>View clause</span>
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -235,15 +256,26 @@ export function ComparisonDetailModal({
               {/* ================= CONTRACT B EVIDENCE ================= */}
               <div className="border border-amber-200 bg-amber-50/20 rounded-xl p-4 flex flex-col justify-between space-y-3">
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between border-b border-amber-100 pb-2">
+                  <div className="flex items-center justify-between border-b border-amber-100 pb-2 flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-amber-600"></span>
                       <span className="text-xs font-bold text-amber-950">Contract B (Revised)</span>
                     </div>
                     {finding.contract_b_source && (
-                      <span className="text-[10px] font-mono text-amber-800 bg-amber-100/70 px-1.5 py-0.5 rounded">
-                        {finding.contract_b_source.clause_id}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-mono text-amber-800 bg-amber-100/70 px-1.5 py-0.5 rounded">
+                          {finding.contract_b_source.clause_id}
+                        </span>
+                        {onViewEvidence && (
+                          <button
+                            type="button"
+                            onClick={() => onViewEvidence(finding)}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded transition-colors"
+                          >
+                            <span>View clause</span>
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
 

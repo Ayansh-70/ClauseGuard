@@ -80,8 +80,9 @@ export async function POST(req: NextRequest) {
       rejectUnverified,
     });
 
-    // Cache verified audit result in server-side report store for export retrieval
+    // Cache verified audit result and structured document in server-side report store
     reportStore.saveAuditResult(auditResult);
+    reportStore.saveDocument(structuredDoc);
 
     return NextResponse.json(auditResult, { status: 200 });
   } catch (err: unknown) {

@@ -37,6 +37,7 @@ import {
 } from '@/components/workstation/ComparisonFilterToolbar';
 import { ComparisonFindingCard } from '@/components/workstation/ComparisonFindingCard';
 import { ComparisonDetailModal } from '@/components/workstation/ComparisonDetailModal';
+import { EvidenceNavigator } from '@/components/workstation/EvidenceNavigator';
 
 import { AuditResult, Finding, ComparisonResult, ComparisonFinding } from '@/types/domain';
 import {
@@ -99,6 +100,29 @@ export default function WorkspacePage() {
   const [comparisonSearchQuery, setComparisonSearchQuery] = useState<string>('');
   const [hideSameProvisions, setHideSameProvisions] = useState<boolean>(false);
 
+  // =========================================================================
+  // 3. Interactive Evidence Navigator State
+  // =========================================================================
+  const [activeNavigatorMode, setActiveNavigatorMode] = useState<'audit' | 'compare' | null>(null);
+  const [navigatorAuditFinding, setNavigatorAuditFinding] = useState<Finding | null>(null);
+  const [navigatorCompareFinding, setNavigatorCompareFinding] = useState<ComparisonFinding | null>(null);
+
+  const handleOpenAuditNavigator = (finding: Finding) => {
+    setNavigatorAuditFinding(finding);
+    setActiveNavigatorMode('audit');
+  };
+
+  const handleOpenCompareNavigator = (finding: ComparisonFinding) => {
+    setNavigatorCompareFinding(finding);
+    setActiveNavigatorMode('compare');
+  };
+
+  const handleCloseNavigator = () => {
+    setActiveNavigatorMode(null);
+    setNavigatorAuditFinding(null);
+    setNavigatorCompareFinding(null);
+  };
+
   // Restore non-sensitive display mode on tab reload
   useEffect(() => {
     try {
@@ -148,6 +172,7 @@ export default function WorkspacePage() {
     setActiveFileName('');
     setErrorState(null);
     setSelectedFinding(null);
+    handleCloseNavigator();
     setAnalysisStage('IDLE');
   };
 
@@ -329,6 +354,7 @@ export default function WorkspacePage() {
     setContractB({ ...INITIAL_CONTRACT_INPUT });
     setComparisonResult(null);
     setSelectedComparisonFinding(null);
+    handleCloseNavigator();
     setComparisonStage('IDLE');
     setCompareErrorState(null);
   };
@@ -744,6 +770,7 @@ export default function WorkspacePage() {
                         key={finding.finding_id}
                         finding={finding}
                         onSelect={setSelectedFinding}
+                        onViewEvidence={handleOpenAuditNavigator}
                       />
                     ))}
                   </div>
@@ -856,6 +883,7 @@ export default function WorkspacePage() {
                         key={finding.id}
                         finding={finding}
                         onSelect={setSelectedComparisonFinding}
+                        onViewEvidence={handleOpenCompareNavigator}
                       />
                     ))}
                   </div>
@@ -879,13 +907,53 @@ export default function WorkspacePage() {
       <FindingDetailModal
         finding={selectedFinding}
         onClose={() => setSelectedFinding(null)}
+        onViewSourceClause={handleOpenAuditNavigator}
       />
 
       {/* Comparison Detail Modal */}
       <ComparisonDetailModal
         finding={selectedComparisonFinding}
         onClose={() => setSelectedComparisonFinding(null)}
+        onViewEvidence={handleOpenCompareNavigator}
       />
+
+      {/* Interactive Evidence Navigator */}
+      {activeNavigatorMode === 'audit' && navigatorAuditFinding && (
+        <EvidenceNavigator
+          mode="audit"
+          finding={navigatorAuditFinding}
+          documentId={auditResult?.document_id}
+          fileName={activeFileName || auditResult?.metadata.file_name}
+          allAuditFindings={auditResult?.findings || []}
+          onSelectAuditFinding={setNavigatorAuditFinding}
+          rawTextFallback={rawText}
+          onClose={handleCloseNavigator}
+        />
+      )}
+
+      {activeNavigatorMode === 'compare' && navigatorCompareFinding && (
+        <EvidenceNavigator
+          mode="compare"
+          comparisonFinding={navigatorCompareFinding}
+          contractA_id={comparisonResult?.metadata.contract_a_metadata.document_id}
+          contractB_id={comparisonResult?.metadata.contract_b_metadata.document_id}
+          contractA_name={
+            comparisonResult?.metadata.contract_a_metadata.file_name ||
+            contractA.fileName ||
+            'Contract A'
+          }
+          contractB_name={
+            comparisonResult?.metadata.contract_b_metadata.file_name ||
+            contractB.fileName ||
+            'Contract B'
+          }
+          contractA_rawText={contractA.rawText}
+          contractB_rawText={contractB.rawText}
+          allComparisonFindings={comparisonResult?.findings || []}
+          onSelectComparisonFinding={setNavigatorCompareFinding}
+          onClose={handleCloseNavigator}
+        />
+      )}
 
       {/* Footer Legal Notice */}
       <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-auto">

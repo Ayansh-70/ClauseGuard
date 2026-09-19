@@ -9,11 +9,13 @@ import { AttentionBadge } from './AttentionBadge';
 interface ComparisonFindingCardProps {
   finding: ComparisonFinding;
   onSelect: (finding: ComparisonFinding) => void;
+  onViewEvidence?: (finding: ComparisonFinding) => void;
 }
 
 export function ComparisonFindingCard({
   finding,
   onSelect,
+  onViewEvidence,
 }: ComparisonFindingCardProps) {
   const isVerified =
     finding.verification_status === 'VERIFIED_EXACT' ||
@@ -115,10 +117,23 @@ export function ComparisonFindingCard({
             )}
           </div>
 
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 group-hover:text-amber-800 group-hover:translate-x-0.5 transition-all">
-            <span>Inspect evidence</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </span>
+          {onViewEvidence ? (
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewEvidence(finding);
+              }}
+              className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded transition-all"
+            >
+              <span>View evidence</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 group-hover:text-amber-800 group-hover:translate-x-0.5 transition-all">
+              <span>Inspect evidence</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </span>
+          )}
         </div>
 
         {/* Question for Counsel indicator */}

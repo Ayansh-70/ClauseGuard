@@ -10,6 +10,7 @@ import {
   FileText,
   AlertCircle,
   Sparkles,
+  Compass,
 } from 'lucide-react';
 import { Finding } from '@/types/domain';
 import { AttentionBadge } from './AttentionBadge';
@@ -18,9 +19,14 @@ import { SHORT_DISCLAIMER } from '@/lib/constants/disclaimers';
 interface FindingDetailModalProps {
   finding: Finding | null;
   onClose: () => void;
+  onViewSourceClause?: (finding: Finding) => void;
 }
 
-export function FindingDetailModal({ finding, onClose }: FindingDetailModalProps) {
+export function FindingDetailModal({
+  finding,
+  onClose,
+  onViewSourceClause,
+}: FindingDetailModalProps) {
   const [copiedQuestion, setCopiedQuestion] = useState(false);
 
   // Close on Escape key press
@@ -144,14 +150,21 @@ export function FindingDetailModal({ finding, onClose }: FindingDetailModalProps
 
           {/* 3. SOURCE EVIDENCE VIEW (Central Product Differentiator) */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
                 <span>Original Document Evidence</span>
               </h3>
-              <span className="text-[11px] font-mono text-slate-500">
-                Independent Server Verification
-              </span>
+              {onViewSourceClause && (
+                <button
+                  type="button"
+                  onClick={() => onViewSourceClause(finding)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 hover:text-amber-900 bg-amber-100/80 hover:bg-amber-200/80 border border-amber-300 px-3 py-1 rounded-lg transition-colors shadow-2xs"
+                >
+                  <Compass className="w-3.5 h-3.5 text-amber-700" />
+                  <span>View source clause</span>
+                </button>
+              )}
             </div>
 
             <div className="bg-slate-900 text-slate-100 rounded-xl p-5 space-y-3 shadow-inner border border-slate-800">
@@ -201,6 +214,20 @@ export function FindingDetailModal({ finding, onClose }: FindingDetailModalProps
                 <div className="text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
                   <span className="text-slate-300 font-semibold">Grounded Analysis: </span>
                   {finding.evidence}
+                </div>
+              )}
+
+              {/* Direct Link to Navigator */}
+              {onViewSourceClause && (
+                <div className="pt-2 border-t border-slate-800 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => onViewSourceClause(finding)}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors"
+                  >
+                    <span>Inspect surrounding context in navigator</span>
+                    <Compass className="w-3.5 h-3.5 ml-1" />
+                  </button>
                 </div>
               )}
             </div>

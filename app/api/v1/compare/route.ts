@@ -128,8 +128,10 @@ export async function POST(req: NextRequest) {
       rejectUnverified,
     });
 
-    // Cache verified comparison result in server-side report store for export retrieval
+    // Cache verified comparison result and structured documents in server-side report store
     reportStore.saveComparisonResult(comparisonResult);
+    reportStore.saveDocument(docA);
+    reportStore.saveDocument(docB);
 
     return NextResponse.json(comparisonResult, { status: 200 });
   } catch (err: unknown) {
