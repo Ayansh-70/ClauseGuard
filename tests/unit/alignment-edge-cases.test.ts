@@ -263,4 +263,148 @@ describe('Deterministic Clause Aligner Edge Cases', () => {
     expect(result.a_only_count).toBe(1);
     expect(result.b_only_count).toBe(1);
   });
+
+  it('accurately resolves 3+ clauses sharing highly similar wording without duplicate assignment', () => {
+    // 3 sub-clauses in Confidentiality
+    const docA = createDocument(
+      'doc_a',
+      [{ id: 'sec_a', title: 'CONFIDENTIALITY' }],
+      [
+        {
+          id: 'clause_a_def',
+          section_id: 'sec_a',
+          number_label: '1.1',
+          text: 'Recipient shall protect Confidential Information with at least reasonable care.',
+        },
+        {
+          id: 'clause_a_return',
+          section_id: 'sec_a',
+          number_label: '1.2',
+          text: 'Recipient shall return or destroy all Confidential Information upon termination.',
+        },
+        {
+          id: 'clause_a_compelled',
+          section_id: 'sec_a',
+          number_label: '1.3',
+          text: 'Recipient may disclose Confidential Information pursuant to a valid court subpoena or legal order.',
+        },
+      ]
+    );
+
+    const docB = createDocument(
+      'doc_b',
+      [{ id: 'sec_b', title: 'CONFIDENTIALITY' }],
+      [
+        {
+          id: 'clause_b_def',
+          section_id: 'sec_b',
+          number_label: '1.1',
+          text: 'Recipient shall safeguard all Confidential Information using reasonable degree of care.',
+        },
+        {
+          id: 'clause_b_return',
+          section_id: 'sec_b',
+          number_label: '1.2',
+          text: 'Upon termination, Recipient must immediately return or certify destruction of all Confidential Information.',
+        },
+        {
+          id: 'clause_b_compelled',
+          section_id: 'sec_b',
+          number_label: '1.3',
+          text: 'Disclosure required by governmental decree or court order is permitted with prompt notice.',
+        },
+      ]
+    );
+
+    const result = alignDocumentClauses(docA, docB);
+    expect(result.aligned_count).toBe(3);
+    expect(result.a_only_count).toBe(0);
+    expect(result.b_only_count).toBe(0);
+
+    // Verify 1-to-1 matching
+    const matchedBIds = new Set(result.pairs.map((p) => p.clause_b?.clause_id).filter(Boolean));
+    expect(matchedBIds.size).toBe(3);
+  });
+
+  it('aligns reordered clauses correctly despite shuffled positions', () => {
+    // Order in A: 1. Payment, 2. Termination, 3. Indemnification
+    const docA = createDocument(
+      'doc_a',
+      [
+        { id: 'sec_a_pay', title: 'FEES' },
+        { id: 'sec_a_term', title: 'TERMINATION' },
+        { id: 'sec_a_ind', title: 'INDEMNITY' },
+      ],
+      [
+        { id: 'c_a_pay', section_id: 'sec_a_pay', number_label: '1.1', text: 'Client pays invoices within thirty days.' },
+        { id: 'c_a_term', section_id: 'sec_a_term', number_label: '2.1', text: 'Either party terminates with thirty days notice.' },
+        { id: 'c_a_ind', section_id: 'sec_a_ind', number_label: '3.1', text: 'Contractor defends Client from third party suits.' },
+      ]
+    );
+
+    // Order in B: 1. Indemnity, 2. Payment, 3. Termination (reversed/shuffled)
+    const docB = createDocument(
+      'doc_b',
+      [
+        { id: 'sec_b_ind', title: 'INDEMNITY' },
+        { id: 'sec_b_pay', title: 'FEES' },
+        { id: 'sec_b_term', title: 'TERMINATION' },
+      ],
+      [
+        { id: 'c_b_ind', section_id: 'sec_b_ind', number_label: '1.1', text: 'Contractor defends Client from third party suits.' },
+        { id: 'c_b_pay', section_id: 'sec_b_pay', number_label: '2.1', text: 'Client pays invoices within thirty days.' },
+        { id: 'c_b_term', section_id: 'sec_b_term', number_label: '3.1', text: 'Either party terminates with thirty days notice.' },
+      ]
+    );
+
+    const result = alignDocumentClauses(docA, docB);
+    expect(result.aligned_count).toBe(3);
+
+    const payPair = result.pairs.find((p) => p.clause_a?.clause_id === 'c_a_pay');
+    expect(payPair?.clause_b?.clause_id).toBe('c_b_pay');
+
+    const termPair = result.pairs.find((p) => p.clause_a?.clause_id === 'c_a_term');
+    expect(termPair?.clause_b?.clause_id).toBe('c_b_term');
+
+    const indPair = result.pairs.find((p) => p.clause_a?.clause_id === 'c_a_ind');
+    expect(indPair?.clause_b?.clause_id).toBe('c_b_ind');
+  });
+
+  it('handles similar headings with opposite legal meaning without false high-confidence equivalence', () => {
+    // Heading in A: "REPRESENTATIONS AND WARRANTIES" vs in B: "WARRANTY DISCLAIMER"
+    const docA = createDocument(
+      'doc_a',
+      [{ id: 'sec_a_war', title: 'SECTION 5. REPRESENTATIONS AND WARRANTIES' }],
+      [
+        {
+          id: 'c_a_war',
+          section_id: 'sec_a_war',
+          number_label: '5.1',
+          text: 'Vendor warrants that software conforms in all material respects to user documentation.',
+        },
+      ]
+    );
+
+    const docB = createDocument(
+      'doc_b',
+      [{ id: 'sec_b_dis', title: 'SECTION 5. WARRANTY DISCLAIMER' }],
+      [
+        {
+          id: 'c_b_dis',
+          section_id: 'sec_b_dis',
+          number_label: '5.1',
+          text: 'Software is provided AS-IS with all faults. Vendor disclaims all express or implied warranties including merchantability.',
+        },
+      ]
+    );
+
+    const result = alignDocumentClauses(docA, docB);
+    // Even if paired by matching section outline "5.1" and "warrant" stem, similarity score reflects divergence
+    if (result.aligned_count === 1) {
+      expect(result.pairs[0].similarity_score).toBeLessThan(0.85); // Divergence detected
+    } else {
+      expect(result.a_only_count).toBe(1);
+      expect(result.b_only_count).toBe(1);
+    }
+  });
 });

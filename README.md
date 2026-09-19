@@ -135,7 +135,7 @@ LIVE_GEMINI_TEST=false
 ```
 
 > **Development & Demo Fallback:**
-> If `GEMINI_API_KEY` is not provided or if `USE_MOCK_AI=true`, ClauseGuard automatically utilizes the built-in `MockGeminiProvider`. The mock provider dynamically parses and grounds findings against whatever document is uploaded, guaranteeing 100% verified source quotes without external API costs or network dependencies.
+> If `GEMINI_API_KEY` is not provided or if `USE_MOCK_AI=true`, ClauseGuard automatically utilizes the built-in `MockGeminiProvider`. The mock provider dynamically parses and grounds findings against whatever document is uploaded, producing deterministic source-verified quotes against the provided text without external API costs or network dependencies.
 
 ### Running the Development Server
 ```bash
