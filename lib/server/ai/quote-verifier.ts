@@ -28,31 +28,44 @@ function normalizeForComparison(str: string): string {
 }
 
 /**
- * Calculates Levenshtein edit distance between two strings.
+ * Calculates Levenshtein edit distance with 2-row memory allocation and optional early-exit threshold.
  */
-function levenshteinDistance(a: string, b: string): number {
+function levenshteinDistance(a: string, b: string, maxLimit?: number): number {
   const m = a.length;
   const n = b.length;
   if (m === 0) return n;
   if (n === 0) return m;
+  if (Math.abs(m - n) > (maxLimit ?? Infinity)) return (maxLimit ?? Infinity) + 1;
 
-  const d: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  let prev = new Array<number>(n + 1);
+  let curr = new Array<number>(n + 1);
 
-  for (let i = 0; i <= m; i++) d[i][0] = i;
-  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let j = 0; j <= n; j++) prev[j] = j;
 
   for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    let minRowVal = curr[0];
+
     for (let j = 1; j <= n; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      d[i][j] = Math.min(
-        d[i - 1][j] + 1,      // deletion
-        d[i][j - 1] + 1,      // insertion
-        d[i - 1][j - 1] + cost // substitution
+      curr[j] = Math.min(
+        prev[j] + 1,       // deletion
+        curr[j - 1] + 1,   // insertion
+        prev[j - 1] + cost // substitution
       );
+      if (curr[j] < minRowVal) minRowVal = curr[j];
     }
+
+    if (maxLimit !== undefined && minRowVal > maxLimit) {
+      return maxLimit + 1;
+    }
+
+    const temp = prev;
+    prev = curr;
+    curr = temp;
   }
 
-  return d[m][n];
+  return prev[n];
 }
 
 /**
@@ -99,14 +112,14 @@ export function verifyQuoteAgainstClause(
     };
   }
 
-  // Sliding window check if excerpt is at least 15 chars
-  if (normExcerpt.length >= 15 && normClause.length >= normExcerpt.length) {
+  // Sliding window check if excerpt is between 15 and 300 chars
+  if (normExcerpt.length >= 15 && normExcerpt.length <= 300 && normClause.length >= normExcerpt.length) {
     const windowLen = normExcerpt.length;
     const maxDistance = Math.max(1, Math.floor(windowLen * 0.05)); // 95% similarity threshold
 
     for (let i = 0; i <= normClause.length - windowLen; i += 3) {
       const windowStr = normClause.substring(i, i + windowLen);
-      const dist = levenshteinDistance(normExcerpt, windowStr);
+      const dist = levenshteinDistance(normExcerpt, windowStr, maxDistance);
       if (dist <= maxDistance) {
         return {
           status: 'VERIFIED_NORMALIZED',

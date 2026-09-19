@@ -1,16 +1,31 @@
 import { z } from 'zod';
 
-export const AttentionLevelSchema = z.enum([
+export const AttentionLevelSchema = z.preprocess((val) => {
+  if (typeof val === 'string') {
+    const upper = val.toUpperCase().trim().replace(/[\s-]+/g, '_');
+    if (upper === 'HIGH') return 'HIGH_ATTENTION';
+    if (upper === 'MEDIUM') return 'MEDIUM_ATTENTION';
+    if (upper === 'LOW') return 'LOW_ATTENTION';
+    if (upper === 'NOTICE' || upper === 'STANDARD') return 'STANDARD_NOTICE';
+    return upper;
+  }
+  return val;
+}, z.enum([
   'HIGH_ATTENTION',
   'MEDIUM_ATTENTION',
   'LOW_ATTENTION',
   'INFORMATIONAL',
   'STANDARD_NOTICE',
-]);
+]));
 
 export const SeveritySchema = z.enum(['low', 'medium', 'high', 'informational']);
 
-export const ContractCategorySchema = z.enum([
+export const ContractCategorySchema = z.preprocess((val) => {
+  if (typeof val === 'string') {
+    return val.toUpperCase().trim().replace(/[\s-]+/g, '_');
+  }
+  return val;
+}, z.enum([
   'PAYMENT_TERMS',
   'LIABILITY_LIMITS',
   'INDEMNIFICATION',
@@ -20,7 +35,7 @@ export const ContractCategorySchema = z.enum([
   'RESTRICTIONS_NON_COMPETE',
   'GOVERNING_LAW_DISPUTES',
   'MATERIAL_OBLIGATIONS',
-]);
+]));
 
 export const VerificationStatusSchema = z.enum([
   'VERIFIED_EXACT',

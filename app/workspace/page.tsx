@@ -44,9 +44,8 @@ import {
 } from '@/lib/constants/sample-contracts';
 import { GLOBAL_LEGAL_DISCLAIMER } from '@/lib/constants/disclaimers';
 
-const SESSION_STORAGE_KEY_RESULT = 'clauseguard_active_audit';
-const SESSION_STORAGE_KEY_FILENAME = 'clauseguard_active_filename';
-const SESSION_STORAGE_KEY_COMPARE_RESULT = 'clauseguard_active_compare';
+// Privacy invariant: Never store raw contract text, quotes, or results in browser storage.
+// Only non-sensitive UI mode preference is persisted.
 const SESSION_STORAGE_KEY_ACTIVE_MODE = 'clauseguard_active_mode';
 
 const INITIAL_CONTRACT_INPUT: ContractInputData = {
@@ -59,6 +58,10 @@ const INITIAL_CONTRACT_INPUT: ContractInputData = {
 export default function WorkspacePage() {
   // Global Workstation Mode
   const [activeMode, setActiveMode] = useState<WorkstationMode>('audit');
+
+  // Concurrency and race condition guards
+  const activeAuditReqId = React.useRef(0);
+  const activeCompareReqId = React.useRef(0);
 
   // =========================================================================
   // 1. Single Document Audit State
@@ -94,7 +97,7 @@ export default function WorkspacePage() {
   const [comparisonSearchQuery, setComparisonSearchQuery] = useState<string>('');
   const [hideSameProvisions, setHideSameProvisions] = useState<boolean>(false);
 
-  // Restore session state on tab reload
+  // Restore non-sensitive display mode on tab reload
   useEffect(() => {
     try {
       const savedMode = sessionStorage.getItem(SESSION_STORAGE_KEY_ACTIVE_MODE) as WorkstationMode | null;
@@ -102,23 +105,20 @@ export default function WorkspacePage() {
         setActiveMode(savedMode);
       }
 
-      const savedAudit = sessionStorage.getItem(SESSION_STORAGE_KEY_RESULT);
-      const savedFileName = sessionStorage.getItem(SESSION_STORAGE_KEY_FILENAME);
-      if (savedAudit && savedFileName) {
-        setAuditResult(JSON.parse(savedAudit));
-        setActiveFileName(savedFileName);
-      }
-
-      const savedCompare = sessionStorage.getItem(SESSION_STORAGE_KEY_COMPARE_RESULT);
-      if (savedCompare) {
-        setComparisonResult(JSON.parse(savedCompare));
-      }
+      // Proactively purge any legacy sensitive contract data from previous versions
+      sessionStorage.removeItem('clauseguard_active_audit');
+      sessionStorage.removeItem('clauseguard_active_filename');
+      sessionStorage.removeItem('clauseguard_active_compare');
     } catch {
-      // Ignore corrupted session storage
+      // Ignore storage access restrictions in hardened environments
     }
   }, []);
 
   const handleModeChange = (mode: WorkstationMode) => {
+    // Invalidate in-flight requests on mode switch
+    activeAuditReqId.current++;
+    activeCompareReqId.current++;
+
     setActiveMode(mode);
     try {
       sessionStorage.setItem(SESSION_STORAGE_KEY_ACTIVE_MODE, mode);
@@ -142,19 +142,19 @@ export default function WorkspacePage() {
     setSelectedFile(null);
     setRawText('');
     setAuditResult(null);
+    activeAuditReqId.current++;
     setActiveFileName('');
     setErrorState(null);
     setSelectedFinding(null);
     setAnalysisStage('IDLE');
-    try {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY_RESULT);
-      sessionStorage.removeItem(SESSION_STORAGE_KEY_FILENAME);
-    } catch {
-      // Ignore
-    }
   };
 
   const handleStartAnalysis = async () => {
+    // Concurrency guard: ignore duplicate triggers while an analysis is in flight
+    if (analysisStage !== 'IDLE' && analysisStage !== 'COMPLETE') {
+      return;
+    }
+
     setErrorState(null);
     setAuditResult(null);
 
@@ -169,16 +169,25 @@ export default function WorkspacePage() {
       return;
     }
 
+    const reqId = ++activeAuditReqId.current;
     const currentDocName = hasFile
       ? selectedFile.name
       : documentTitle || 'Pasted_Agreement.txt';
     setActiveFileName(currentDocName);
 
     setAnalysisStage('UPLOADING');
-    const stageTimer1 = setTimeout(() => setAnalysisStage('EXTRACTING'), 600);
-    const stageTimer2 = setTimeout(() => setAnalysisStage('SEGMENTING'), 1300);
-    const stageTimer3 = setTimeout(() => setAnalysisStage('ANALYZING'), 2100);
-    const stageTimer4 = setTimeout(() => setAnalysisStage('VERIFYING'), 3000);
+    const stageTimer1 = setTimeout(() => {
+      if (reqId === activeAuditReqId.current) setAnalysisStage('EXTRACTING');
+    }, 600);
+    const stageTimer2 = setTimeout(() => {
+      if (reqId === activeAuditReqId.current) setAnalysisStage('SEGMENTING');
+    }, 1300);
+    const stageTimer3 = setTimeout(() => {
+      if (reqId === activeAuditReqId.current) setAnalysisStage('ANALYZING');
+    }, 2100);
+    const stageTimer4 = setTimeout(() => {
+      if (reqId === activeAuditReqId.current) setAnalysisStage('VERIFYING');
+    }, 3000);
 
     try {
       let res: Response;
@@ -208,6 +217,11 @@ export default function WorkspacePage() {
       clearTimeout(stageTimer3);
       clearTimeout(stageTimer4);
 
+      // If request was superseded while fetch was pending, ignore result
+      if (reqId !== activeAuditReqId.current) {
+        return;
+      }
+
       if (!res.ok) {
         const errorJson = await res.json().catch(() => ({}));
         const code = errorJson?.error?.code || 'ANALYSIS_FAILED';
@@ -226,20 +240,21 @@ export default function WorkspacePage() {
       }
 
       const result: AuditResult = await res.json();
+      if (reqId !== activeAuditReqId.current) {
+        return;
+      }
+
       setAuditResult(result);
       setAnalysisStage('COMPLETE');
-
-      try {
-        sessionStorage.setItem(SESSION_STORAGE_KEY_RESULT, JSON.stringify(result));
-        sessionStorage.setItem(SESSION_STORAGE_KEY_FILENAME, currentDocName);
-      } catch {
-        // Ignore
-      }
     } catch {
       clearTimeout(stageTimer1);
       clearTimeout(stageTimer2);
       clearTimeout(stageTimer3);
       clearTimeout(stageTimer4);
+
+      if (reqId !== activeAuditReqId.current) {
+        return;
+      }
 
       setErrorState({
         title: 'Connection Notice',
@@ -307,20 +322,21 @@ export default function WorkspacePage() {
   };
 
   const handleResetComparison = () => {
+    activeCompareReqId.current++;
     setContractA({ ...INITIAL_CONTRACT_INPUT });
     setContractB({ ...INITIAL_CONTRACT_INPUT });
     setComparisonResult(null);
     setSelectedComparisonFinding(null);
     setComparisonStage('IDLE');
     setCompareErrorState(null);
-    try {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY_COMPARE_RESULT);
-    } catch {
-      // Ignore
-    }
   };
 
   const handleStartComparison = async () => {
+    // Concurrency guard: ignore duplicate triggers while a comparison is in flight
+    if (comparisonStage !== 'IDLE' && comparisonStage !== 'COMPLETE') {
+      return;
+    }
+
     setCompareErrorState(null);
     setComparisonResult(null);
 
@@ -335,10 +351,17 @@ export default function WorkspacePage() {
       return;
     }
 
+    const reqId = ++activeCompareReqId.current;
     setComparisonStage('PREPARING');
-    const timer1 = setTimeout(() => setComparisonStage('ALIGNING'), 700);
-    const timer2 = setTimeout(() => setComparisonStage('ANALYZING'), 1600);
-    const timer3 = setTimeout(() => setComparisonStage('VERIFYING'), 2600);
+    const timer1 = setTimeout(() => {
+      if (reqId === activeCompareReqId.current) setComparisonStage('ALIGNING');
+    }, 700);
+    const timer2 = setTimeout(() => {
+      if (reqId === activeCompareReqId.current) setComparisonStage('ANALYZING');
+    }, 1600);
+    const timer3 = setTimeout(() => {
+      if (reqId === activeCompareReqId.current) setComparisonStage('VERIFYING');
+    }, 2600);
 
     try {
       let res: Response;
@@ -378,6 +401,10 @@ export default function WorkspacePage() {
       clearTimeout(timer2);
       clearTimeout(timer3);
 
+      if (reqId !== activeCompareReqId.current) {
+        return;
+      }
+
       if (!res.ok) {
         const errorJson = await res.json().catch(() => ({}));
         const code = errorJson?.error?.code || 'COMPARISON_FAILED';
@@ -394,18 +421,20 @@ export default function WorkspacePage() {
       }
 
       const result: ComparisonResult = await res.json();
+      if (reqId !== activeCompareReqId.current) {
+        return;
+      }
+
       setComparisonResult(result);
       setComparisonStage('COMPLETE');
-
-      try {
-        sessionStorage.setItem(SESSION_STORAGE_KEY_COMPARE_RESULT, JSON.stringify(result));
-      } catch {
-        // Ignore
-      }
     } catch {
       clearTimeout(timer1);
       clearTimeout(timer2);
       clearTimeout(timer3);
+
+      if (reqId !== activeCompareReqId.current) {
+        return;
+      }
 
       setCompareErrorState({
         title: 'Connection Notice',

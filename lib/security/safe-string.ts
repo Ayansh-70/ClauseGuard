@@ -13,11 +13,13 @@ export const MIN_TEXT_LENGTH_CHARS = 10;
  */
 const SUSPICIOUS_INJECTION_PATTERNS = [
   /ignore\s+(all\s+)?(previous|prior|above)\s+instructions/i,
-  /system\s*(override|directive|prompt)/i,
+  /system\s*(override|directive|prompt|message|instruction|command)/i,
   /disregard\s+(all\s+)?(rules|instructions|guidelines)/i,
   /you\s+are\s+now\s+(in\s+)?(developer|jailbreak|unrestricted)\s+mode/i,
   /return\s+(only\s+)?(safe|empty|none)\s+(and|then)\s+ignore/i,
   /administrative\s+override\s*:/i,
+  /assistant\s*:/i,
+  /do\s+not\s+(quote|audit|analyze|evaluate|report)\s+(this|any)\s+(clause|contract|provision)/i,
 ];
 
 /**
@@ -58,8 +60,18 @@ export function scanForSuspiciousContent(text: string): SecurityStatus {
 }
 
 /**
+ * Sanitizes untrusted text to prevent XML boundary escape or simulated system tags.
+ */
+export function sanitizeUntrustedDelimiters(text: string): string {
+  return text
+    .replace(/<\s*\/?\s*untrusted_[^>]*>/gi, (match) => `[SANITIZED_TAG: ${match.replace(/[<>]/g, '')}]`)
+    .replace(/<\s*\/?\s*(?:system|instruction|prompt)[^>]*>/gi, (match) => `[SANITIZED_TAG: ${match.replace(/[<>]/g, '')}]`);
+}
+
+/**
  * Wraps untrusted contract text in rigid XML delimiters for safe downstream LLM ingestion.
  */
 export function wrapUntrustedDocument(normalizedText: string): string {
-  return `<untrusted_contract_text>\n${normalizedText}\n</untrusted_contract_text>`;
+  const sanitized = sanitizeUntrustedDelimiters(normalizedText);
+  return `<untrusted_contract_text>\n${sanitized}\n</untrusted_contract_text>`;
 }

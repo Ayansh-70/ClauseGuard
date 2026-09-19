@@ -1,6 +1,7 @@
 import 'server-only';
 import { AlignmentResult, StructuredDocument } from '@/types/domain';
 import { AppError } from '@/lib/errors/app-error';
+import { sanitizeUntrustedDelimiters } from '@/lib/security/safe-string';
 import { randomUUID } from 'crypto';
 
 export interface ComparisonContext {
@@ -64,8 +65,11 @@ export function buildComparisonContext(
   const rawContractA = formatDocumentClauses(docA, 'Contract A');
   const rawContractB = formatDocumentClauses(docB, 'Contract B');
 
-  const wrappedContractA = `<untrusted_contract_a>\n${rawContractA}\n</untrusted_contract_a>`;
-  const wrappedContractB = `<untrusted_contract_b>\n${rawContractB}\n</untrusted_contract_b>`;
+  const sanitizedA = sanitizeUntrustedDelimiters(rawContractA);
+  const sanitizedB = sanitizeUntrustedDelimiters(rawContractB);
+
+  const wrappedContractA = `<untrusted_contract_a>\n${sanitizedA}\n</untrusted_contract_a>`;
+  const wrappedContractB = `<untrusted_contract_b>\n${sanitizedB}\n</untrusted_contract_b>`;
 
   // Build structured aligned pairs map
   const pairLines: string[] = [

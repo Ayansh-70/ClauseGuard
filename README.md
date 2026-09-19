@@ -199,10 +199,40 @@ Verified Comparison Result
 
 ---
 
+## Security, Privacy & Reliability Architecture (Phase 7)
+
+ClauseGuard is engineered with defensive security and privacy principles designed for confidential commercial contracts:
+
+1. **Transient Memory-Only Processing:**
+   - Contracts are parsed in-memory and discarded upon request completion.
+   - Zero filesystem persistence: no files or extracted buffers are ever saved to disk.
+   - Zero browser storage: neither raw contract text, nor extracted clauses, nor AI summaries are written to `localStorage` or `sessionStorage`. Active analysis lives solely in volatile React state.
+
+2. **Adversarial Prompt-Injection Defense:**
+   - Input contracts are bounded in rigid `<untrusted_contract_text>` XML blocks.
+   - Embedded delimiter breakout attacks (e.g. `</untrusted_contract_text>`, `<system>`) are sanitized and neutralized before LLM context construction.
+   - Heuristic scanners flag adversarial prompt override tokens (`IGNORE ALL INSTRUCTIONS`, `SYSTEM MESSAGE:`, etc.) for audit visibility.
+
+3. **Deterministic Independent Source Verification:**
+   - AI-suggested quotes are independently validated against the original text using exact substring matching and normalized Levenshtein distance.
+   - Fabricated, altered, or misattributed quotes are quarantined into rejected observations and never presented as verified legal evidence.
+   - In comparison mode, dual-document verification prevents cross-document quote contamination (Contract A quotes cannot be accepted from Contract B).
+
+4. **Strict Boundary Schema Validation:**
+   - All AI output passes through rigid runtime Zod schemas before reaching business logic or the UI.
+   - Case-normalization and format preprocessing ensure resilience against LLM formatting variances without sacrificing structural guarantees.
+
+5. **Resource Bounding & DoS Protection:**
+   - Strict size limits: 500 KB file ceiling and 180,000 character context cap prevent memory exhaustion.
+   - Algorithmic optimizations: 2-row bounded Levenshtein distance with early-exit thresholds and precomputed section metadata protect against pathological inputs.
+   - Concurrency debouncing: In-flight requests lock UI submissions and discard superseded responses, preventing duplicate server calls and race conditions.
+
+---
+
 ## Verification & Testing Suite
 
 ```bash
-# Run Vitest test suite (119 unit and integration tests across 30 test files)
+# Run Vitest test suite (138 unit and integration tests across 33 test files)
 npm test
 
 # Type-check TypeScript strictly (0 errors)

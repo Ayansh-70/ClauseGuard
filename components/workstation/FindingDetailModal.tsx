@@ -40,9 +40,15 @@ export function FindingDetailModal({ finding, onClose }: FindingDetailModalProps
 
   const handleCopyQuestion = () => {
     if (finding.suggested_question_for_counsel) {
-      navigator.clipboard.writeText(finding.suggested_question_for_counsel);
-      setCopiedQuestion(true);
-      setTimeout(() => setCopiedQuestion(false), 2000);
+      navigator.clipboard
+        ?.writeText(finding.suggested_question_for_counsel)
+        .then(() => {
+          setCopiedQuestion(true);
+          setTimeout(() => setCopiedQuestion(false), 2000);
+        })
+        .catch(() => {
+          // Fallback or gracefully ignore if clipboard permissions are restricted
+        });
     }
   };
 

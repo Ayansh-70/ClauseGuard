@@ -128,14 +128,37 @@ export function alignDocumentClauses(
 ): AlignmentResult {
   const threshold = options.minScoreThreshold ?? 0.25;
 
-  const sectionMapA = new Map<string, string>();
-  for (const sec of docA.sections) {
-    sectionMapA.set(sec.section_id, sec.title);
+  interface HeadingMeta {
+    cleanTitle: string;
+    tokens: Set<string>;
   }
 
-  const sectionMapB = new Map<string, string>();
+  const sectionMetaA = new Map<string, HeadingMeta>();
+  for (const sec of docA.sections) {
+    const clean = cleanHeadingTitle(sec.title);
+    sectionMetaA.set(sec.section_id, { cleanTitle: clean, tokens: extractTokenSet(clean) });
+  }
+
+  const sectionMetaB = new Map<string, HeadingMeta>();
   for (const sec of docB.sections) {
-    sectionMapB.set(sec.section_id, sec.title);
+    const clean = cleanHeadingTitle(sec.title);
+    sectionMetaB.set(sec.section_id, { cleanTitle: clean, tokens: extractTokenSet(clean) });
+  }
+
+  const titleMetaA = new Map<string, HeadingMeta>();
+  for (const c of docA.clauses) {
+    if (c.title) {
+      const clean = cleanHeadingTitle(c.title);
+      titleMetaA.set(c.clause_id, { cleanTitle: clean, tokens: extractTokenSet(clean) });
+    }
+  }
+
+  const titleMetaB = new Map<string, HeadingMeta>();
+  for (const c of docB.clauses) {
+    if (c.title) {
+      const clean = cleanHeadingTitle(c.title);
+      titleMetaB.set(c.clause_id, { cleanTitle: clean, tokens: extractTokenSet(clean) });
+    }
   }
 
   const tokensA = new Map<string, Set<string>>();
@@ -152,11 +175,13 @@ export function alignDocumentClauses(
 
   // Compute pairwise scoring across all clauses
   for (const cA of docA.clauses) {
-    const secTitleA = cA.section_id ? sectionMapA.get(cA.section_id) || '' : '';
+    const secA = cA.section_id ? sectionMetaA.get(cA.section_id) : undefined;
+    const titleA = titleMetaA.get(cA.clause_id);
     const tokA = tokensA.get(cA.clause_id)!;
 
     for (const cB of docB.clauses) {
-      const secTitleB = cB.section_id ? sectionMapB.get(cB.section_id) || '' : '';
+      const secB = cB.section_id ? sectionMetaB.get(cB.section_id) : undefined;
+      const titleB = titleMetaB.get(cB.clause_id);
       const tokB = tokensB.get(cB.clause_id)!;
 
       let score = 0;
@@ -171,37 +196,28 @@ export function alignDocumentClauses(
         }
       }
 
-      // 2. Section heading similarity (Dice + stem check on cleaned headings)
+      // 2. Section heading similarity (Dice + stem check on precomputed clean headings)
       let secSimilarity = 0;
-      if (secTitleA && secTitleB) {
-        const cleanSecA = cleanHeadingTitle(secTitleA);
-        const cleanSecB = cleanHeadingTitle(secTitleB);
-        secSimilarity = computeDiceSimilarity(cleanSecA, cleanSecB);
-        const secTokensA = extractTokenSet(cleanSecA);
-        const secTokensB = extractTokenSet(cleanSecB);
-        const secJaccard = computeJaccardSimilarity(secTokensA, secTokensB);
+      if (secA && secB) {
+        secSimilarity = computeDiceSimilarity(secA.cleanTitle, secB.cleanTitle);
+        const secJaccard = computeJaccardSimilarity(secA.tokens, secB.tokens);
         const bestSecSim = Math.max(secSimilarity, secJaccard);
 
         if (bestSecSim >= 0.4) {
           score += bestSecSim * 0.25;
-          rationaleParts.push(`Matching section "${cleanSecA}"`);
+          rationaleParts.push(`Matching section "${secA.cleanTitle}"`);
         }
       }
 
       // 3. Clause title similarity
-      let titleSimilarity = 0;
-      if (cA.title && cB.title) {
-        const cleanTitleA = cleanHeadingTitle(cA.title);
-        const cleanTitleB = cleanHeadingTitle(cB.title);
-        titleSimilarity = computeDiceSimilarity(cleanTitleA, cleanTitleB);
-        const titleTokensA = extractTokenSet(cleanTitleA);
-        const titleTokensB = extractTokenSet(cleanTitleB);
-        const titleJaccard = computeJaccardSimilarity(titleTokensA, titleTokensB);
+      if (titleA && titleB) {
+        const titleSimilarity = computeDiceSimilarity(titleA.cleanTitle, titleB.cleanTitle);
+        const titleJaccard = computeJaccardSimilarity(titleA.tokens, titleB.tokens);
         const bestTitleSim = Math.max(titleSimilarity, titleJaccard);
 
         if (bestTitleSim >= 0.4) {
           score += bestTitleSim * 0.25;
-          rationaleParts.push(`Matching title "${cleanTitleA}"`);
+          rationaleParts.push(`Matching title "${titleA.cleanTitle}"`);
         }
       }
 
@@ -228,8 +244,13 @@ export function alignDocumentClauses(
     }
   }
 
-  // Greedy bipartite matching sorted by score descending
-  candidates.sort((a, b) => b.score - a.score);
+  // Deterministic greedy bipartite matching: primary by score desc, secondary by clause IDs asc
+  candidates.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const cmpA = a.clauseA.clause_id.localeCompare(b.clauseA.clause_id);
+    if (cmpA !== 0) return cmpA;
+    return a.clauseB.clause_id.localeCompare(b.clauseB.clause_id);
+  });
 
   const matchedA = new Set<string>();
   const matchedB = new Set<string>();

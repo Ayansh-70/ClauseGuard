@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { ComparisonStatusBadge } from '@/components/workstation/ComparisonStatusBadge';
 import { ComparisonMetricsBar } from '@/components/workstation/ComparisonMetricsBar';
 import { ComparisonFindingCard } from '@/components/workstation/ComparisonFindingCard';
@@ -255,7 +255,7 @@ describe('Comparison UI Components', () => {
       expect(screen.getByText('Correspondence Uncertain (Needs Review)')).toBeDefined();
     });
 
-    it('copies question for counsel when copy button is clicked', () => {
+    it('copies question for counsel when copy button is clicked', async () => {
       // Mock clipboard writeText
       const writeTextMock = vi.fn().mockResolvedValue(undefined);
       Object.assign(navigator, {
@@ -266,7 +266,9 @@ describe('Comparison UI Components', () => {
       render(<ComparisonDetailModal finding={mockFindings[0]} onClose={onClose} />);
 
       const copyBtn = screen.getByRole('button', { name: /Copy Question/i });
-      fireEvent.click(copyBtn);
+      await act(async () => {
+        fireEvent.click(copyBtn);
+      });
 
       expect(writeTextMock).toHaveBeenCalledWith(
         'Can we insist on maintaining Net-30 payment terms?'

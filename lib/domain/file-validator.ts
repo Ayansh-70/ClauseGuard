@@ -23,7 +23,9 @@ export function sanitizeFileName(rawFileName: string): string {
   // Strip path traversal sequences (../, ..\, etc.) and directory paths
   const baseName = rawFileName.replace(/^.*[\\/]/, '');
   // Retain only safe alphanumeric characters, dashes, underscores, spaces, and periods
-  const sanitized = baseName.replace(/[^a-zA-Z0-9._\-\s]/g, '_').trim();
+  let sanitized = baseName.replace(/[^a-zA-Z0-9._\-\s]/g, '_').trim();
+  // Strip leading dots or strings that are purely dots to prevent hidden/traversal names
+  sanitized = sanitized.replace(/^\.+/, '');
   return sanitized.length > 0 ? sanitized.slice(0, 255) : 'document';
 }
 
@@ -51,7 +53,7 @@ export function validateFile(rawFileName: string, buffer: Buffer): ValidatedFile
   if (!formatConfig) {
     throw new AppError(
       'UNSUPPORTED_FORMAT',
-      `Unsupported file extension '.${rawExt}'. JuriLens supports .txt, .md, and .pdf agreements.`,
+      `Unsupported file extension '.${rawExt}'. ClauseGuard supports .txt, .md, and .pdf agreements.`,
       415
     );
   }
