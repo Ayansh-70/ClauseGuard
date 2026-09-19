@@ -88,7 +88,7 @@ export function ComparisonDetailModal({
               <ComparisonStatusBadge status={finding.status} />
               <AttentionBadge level={finding.attention_level} size="sm" />
               <span className="text-xs font-semibold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded uppercase tracking-wider">
-                {finding.category.replace(/_/g, ' ')}
+                {(finding.category || 'GENERAL').replace(/_/g, ' ')}
               </span>
               {finding.confidence && (
                 <span className="text-[11px] text-slate-400 font-mono">

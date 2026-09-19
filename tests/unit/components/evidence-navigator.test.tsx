@@ -197,6 +197,60 @@ describe('EvidenceNavigator Component', () => {
       expect(onSelect).toHaveBeenCalledWith(mockAuditFinding2);
     });
 
+    it('focuses modal container on mount with tabIndex=-1', () => {
+      const onClose = vi.fn();
+      const { container } = render(
+        <EvidenceNavigator
+          mode="audit"
+          finding={mockAuditFinding1}
+          onClose={onClose}
+        />
+      );
+
+      const modalContainer = container.querySelector('[tabindex="-1"]');
+      expect(modalContainer).toBeDefined();
+      expect(document.activeElement).toBe(modalContainer);
+    });
+
+    it('gracefully renders without crashing when category is undefined or missing', () => {
+      const onClose = vi.fn();
+      const malformedFinding = {
+        ...mockAuditFinding1,
+        category: undefined as unknown as string,
+      };
+
+      expect(() => {
+        render(
+          <EvidenceNavigator
+            mode="audit"
+            finding={malformedFinding as unknown as Finding}
+            onClose={onClose}
+          />
+        );
+      }).not.toThrow();
+
+      expect(screen.getByText('GENERAL')).toBeDefined();
+    });
+
+    it('honestly displays Unverified AI Finding badge when finding is unverified', () => {
+      const onClose = vi.fn();
+      const unverifiedFinding: Finding = {
+        ...mockAuditFinding1,
+        verification_status: 'UNVERIFIED_SOURCE_MISMATCH',
+      };
+
+      render(
+        <EvidenceNavigator
+          mode="audit"
+          finding={unverifiedFinding}
+          onClose={onClose}
+        />
+      );
+
+      expect(screen.getByText('Unverified AI Finding')).toBeDefined();
+      expect(screen.queryByText('Independent Grounded Verification')).toBeNull();
+    });
+
     it('triggers onClose when Close button or Done button is clicked', () => {
       const onClose = vi.fn();
       render(

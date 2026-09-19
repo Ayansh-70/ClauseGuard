@@ -4,7 +4,7 @@
  * Strict resolution order:
  * 1. Exact offsets (matched_range)
  * 2. Exact substring match (indexOf)
- * 3. Safe normalized match (whitespace & quote normalization)
+ * 3. Safe normalized match (whitespace, dash & quote normalization)
  * 4. Unresolved fallback (honest report, zero fabrication, never highlight unrelated text)
  */
 
@@ -35,6 +35,8 @@ export interface ResolvedEvidence {
   surroundingBefore: string;
   surroundingAfter: string;
   unresolvedReason?: string;
+  isAmbiguous?: boolean;
+  ambiguityNotice?: string;
 }
 
 /**
@@ -45,29 +47,35 @@ function escapeRegex(str: string): string {
 }
 
 /**
- * Normalizes quote marks and whitespace for equality checks.
+ * Normalizes quote marks, dashes, and whitespace for equality checks.
  */
 export function normalizeQuotesAndWhitespace(str: string): string {
+  if (typeof str !== 'string') return '';
   return str
     .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
     .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'")
+    .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212]/g, '-')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
 /**
- * Builds a regex pattern that matches the quote across varied whitespace and quote styling.
+ * Builds a regex pattern that matches the quote across varied whitespace, dashes, and quote styling.
+ * Caps at 200 tokens to prevent excessive compilation cost on pathological inputs.
  */
 function buildNormalizedRegex(quote: string, caseSensitive: boolean): RegExp | null {
+  if (typeof quote !== 'string' || quote.length > 5000) return null;
+
   const tokens = quote.split(/\s+/).filter(Boolean);
-  if (tokens.length === 0) return null;
+  if (tokens.length === 0 || tokens.length > 200) return null;
 
   const escapedTokens = tokens.map((token) => {
-    // Escape standard regex characters
     let escaped = escapeRegex(token);
     // Allow interchangeable straight and curly quotes
     escaped = escaped.replace(/["\u201C\u201D\u201E\u201F\u2033\u2036]/g, '["\u201C\u201D\u201E\u201F\u2033\u2036]');
     escaped = escaped.replace(/['\u2018\u2019\u201A\u201B\u2032\u2035]/g, "['\u2018\u2019\u201A\u201B\u2032\u2035]");
+    // Allow interchangeable hyphens, minus, en-dashes, and em-dashes
+    escaped = escaped.replace(/[-\u2010\u2011\u2012\u2013\u2014\u2015\u2212]/g, '[-\\u2010\\u2011\\u2012\\u2013\\u2014\\u2015\\u2212]');
     return escaped;
   });
 
@@ -82,13 +90,14 @@ function buildNormalizedRegex(quote: string, caseSensitive: boolean): RegExp | n
 /**
  * Pure resolver locating verbatim quotes within clause text.
  * Strictly adheres to 4-tier resolution hierarchy.
+ * Resistant to malformed, non-integer, or pathological offsets.
  */
 export function resolveEvidence(options: ResolveEvidenceOptions): ResolvedEvidence {
-  const clauseText = options.clauseText || '';
-  const surroundingBefore = options.surroundingBefore || '';
-  const surroundingAfter = options.surroundingAfter || '';
+  const clauseText = typeof options?.clauseText === 'string' ? options.clauseText : '';
+  const surroundingBefore = typeof options?.surroundingBefore === 'string' ? options.surroundingBefore : '';
+  const surroundingAfter = typeof options?.surroundingAfter === 'string' ? options.surroundingAfter : '';
 
-  // Edge case 1: Missing clause text
+  // Edge case 1: Missing or whitespace-only clause text
   if (!clauseText || clauseText.trim().length === 0) {
     return {
       isResolved: false,
@@ -103,7 +112,7 @@ export function resolveEvidence(options: ResolveEvidenceOptions): ResolvedEviden
   }
 
   // Edge case 2: Missing quote
-  const rawQuote = options.quote || '';
+  const rawQuote = typeof options?.quote === 'string' ? options.quote : '';
   const trimmedQuote = rawQuote.trim();
   if (trimmedQuote.length === 0) {
     return {
@@ -118,18 +127,24 @@ export function resolveEvidence(options: ResolveEvidenceOptions): ResolvedEviden
     };
   }
 
-  // Tier 1: Exact offset matching
+  // Tier 1: Exact offset matching with strict integer validation
   if (
     options.matchedRange &&
-    typeof options.matchedRange.start === 'number' &&
-    typeof options.matchedRange.end === 'number'
+    Number.isSafeInteger(options.matchedRange.start) &&
+    Number.isSafeInteger(options.matchedRange.end) &&
+    options.matchedRange.start >= 0 &&
+    options.matchedRange.end > options.matchedRange.start
   ) {
     const { start, end } = options.matchedRange;
 
     // Check canonical offset relative to clauseStartOffset
-    if (typeof options.clauseStartOffset === 'number' && start >= options.clauseStartOffset) {
-      const relStart = start - options.clauseStartOffset;
-      const relEnd = end - options.clauseStartOffset;
+    if (
+      Number.isSafeInteger(options.clauseStartOffset) &&
+      (options.clauseStartOffset as number) >= 0 &&
+      start >= (options.clauseStartOffset as number)
+    ) {
+      const relStart = start - (options.clauseStartOffset as number);
+      const relEnd = end - (options.clauseStartOffset as number);
 
       if (relStart >= 0 && relEnd <= clauseText.length && relStart < relEnd) {
         const candidate = clauseText.slice(relStart, relEnd);
@@ -145,6 +160,7 @@ export function resolveEvidence(options: ResolveEvidenceOptions): ResolvedEviden
             afterText: clauseText.slice(relEnd),
             surroundingBefore,
             surroundingAfter,
+            isAmbiguous: false,
           };
         }
       }
@@ -165,6 +181,7 @@ export function resolveEvidence(options: ResolveEvidenceOptions): ResolvedEviden
           afterText: clauseText.slice(end),
           surroundingBefore,
           surroundingAfter,
+          isAmbiguous: false,
         };
       }
     }
@@ -173,6 +190,20 @@ export function resolveEvidence(options: ResolveEvidenceOptions): ResolvedEviden
   // Tier 2: Exact quote substring match (indexOf)
   const exactIndex = clauseText.indexOf(trimmedQuote);
   if (exactIndex !== -1) {
+    // Check for multiple occurrences within the clause to flag ambiguity
+    let isAmbiguous = clauseText.indexOf(trimmedQuote, exactIndex + 1) !== -1;
+    if (!isAmbiguous) {
+      // Also check if a normalized pattern matches elsewhere in the clause
+      const normRegex = buildNormalizedRegex(trimmedQuote, false);
+      if (normRegex) {
+        const remaining = clauseText.slice(exactIndex + trimmedQuote.length);
+        const preceding = clauseText.slice(0, exactIndex);
+        if (normRegex.test(remaining) || normRegex.test(preceding)) {
+          isAmbiguous = true;
+        }
+      }
+    }
+
     return {
       isResolved: true,
       status: 'EXACT_QUOTE',
@@ -181,10 +212,14 @@ export function resolveEvidence(options: ResolveEvidenceOptions): ResolvedEviden
       afterText: clauseText.slice(exactIndex + trimmedQuote.length),
       surroundingBefore,
       surroundingAfter,
+      isAmbiguous,
+      ambiguityNotice: isAmbiguous
+        ? 'Quote appears multiple times in this clause; displaying the first match.'
+        : undefined,
     };
   }
 
-  // Tier 3: Safe normalized match (whitespace & quote normalization)
+  // Tier 3: Safe normalized match (whitespace, dash & quote normalization)
   // Try case-sensitive normalized first
   const caseSensitiveRegex = buildNormalizedRegex(trimmedQuote, true);
   if (caseSensitiveRegex) {
@@ -192,6 +227,8 @@ export function resolveEvidence(options: ResolveEvidenceOptions): ResolvedEviden
     if (match && typeof match.index === 'number') {
       const startIdx = match.index;
       const matchLen = match[0].length;
+      const secondMatch = clauseText.slice(startIdx + 1).match(caseSensitiveRegex);
+      const isAmbiguous = !!secondMatch;
       return {
         isResolved: true,
         status: 'NORMALIZED_MATCH',
@@ -200,6 +237,10 @@ export function resolveEvidence(options: ResolveEvidenceOptions): ResolvedEviden
         afterText: clauseText.slice(startIdx + matchLen),
         surroundingBefore,
         surroundingAfter,
+        isAmbiguous,
+        ambiguityNotice: isAmbiguous
+          ? 'Quote appears multiple times in this clause; displaying the first match.'
+          : undefined,
       };
     }
   }
@@ -211,6 +252,8 @@ export function resolveEvidence(options: ResolveEvidenceOptions): ResolvedEviden
     if (match && typeof match.index === 'number') {
       const startIdx = match.index;
       const matchLen = match[0].length;
+      const secondMatch = clauseText.slice(startIdx + 1).match(caseInsensitiveRegex);
+      const isAmbiguous = !!secondMatch;
       return {
         isResolved: true,
         status: 'NORMALIZED_MATCH',
@@ -219,6 +262,10 @@ export function resolveEvidence(options: ResolveEvidenceOptions): ResolvedEviden
         afterText: clauseText.slice(startIdx + matchLen),
         surroundingBefore,
         surroundingAfter,
+        isAmbiguous,
+        ambiguityNotice: isAmbiguous
+          ? 'Quote appears multiple times in this clause; displaying the first match.'
+          : undefined,
       };
     }
   }

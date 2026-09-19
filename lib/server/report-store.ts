@@ -40,7 +40,9 @@ class ReportStore {
 
     this.pruneExpired();
 
-    if (this.auditStore.size >= MAX_STORE_ENTRIES) {
+    if (this.auditStore.has(result.document_id)) {
+      this.auditStore.delete(result.document_id);
+    } else if (this.auditStore.size >= MAX_STORE_ENTRIES) {
       const oldestKey = this.auditStore.keys().next().value;
       if (oldestKey) this.auditStore.delete(oldestKey);
     }
@@ -65,6 +67,10 @@ class ReportStore {
       return null;
     }
 
+    // Refresh LRU recency on access
+    this.auditStore.delete(documentId);
+    this.auditStore.set(documentId, entry);
+
     return entry.data;
   }
 
@@ -78,7 +84,9 @@ class ReportStore {
 
     this.pruneExpired();
 
-    if (this.comparisonStore.size >= MAX_STORE_ENTRIES) {
+    if (this.comparisonStore.has(result.comparison_id)) {
+      this.comparisonStore.delete(result.comparison_id);
+    } else if (this.comparisonStore.size >= MAX_STORE_ENTRIES) {
       const oldestKey = this.comparisonStore.keys().next().value;
       if (oldestKey) this.comparisonStore.delete(oldestKey);
     }
@@ -103,6 +111,10 @@ class ReportStore {
       return null;
     }
 
+    // Refresh LRU recency on access
+    this.comparisonStore.delete(comparisonId);
+    this.comparisonStore.set(comparisonId, entry);
+
     return entry.data;
   }
 
@@ -116,7 +128,9 @@ class ReportStore {
 
     this.pruneExpired();
 
-    if (this.documentStore.size >= MAX_STORE_ENTRIES) {
+    if (this.documentStore.has(doc.metadata.document_id)) {
+      this.documentStore.delete(doc.metadata.document_id);
+    } else if (this.documentStore.size >= MAX_STORE_ENTRIES) {
       const oldestKey = this.documentStore.keys().next().value;
       if (oldestKey) this.documentStore.delete(oldestKey);
     }
@@ -140,6 +154,10 @@ class ReportStore {
       this.documentStore.delete(documentId);
       return null;
     }
+
+    // Refresh LRU recency on access
+    this.documentStore.delete(documentId);
+    this.documentStore.set(documentId, entry);
 
     return entry.data;
   }
@@ -177,7 +195,9 @@ class ReportStore {
     const doc = this.getDocument(documentId);
     if (!doc) return null;
 
-    const clause = doc.clauses.find((c) => c.clause_id === clauseId);
+    const clause = doc.clauses.find(
+      (c) => c.clause_id === clauseId || (c.number_label && c.number_label === clauseId)
+    );
     if (!clause) return null;
 
     const safeRadius = Math.max(0, Math.min(2000, radius));

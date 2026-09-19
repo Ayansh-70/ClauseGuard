@@ -76,7 +76,7 @@ export function FindingDetailModal({
             <div className="flex items-center gap-2 flex-wrap">
               <AttentionBadge level={finding.attention_level} size="sm" />
               <span className="text-xs font-mono text-slate-500 bg-white border border-slate-200 px-2.5 py-0.5 rounded uppercase">
-                {finding.category.replace(/_/g, ' ')}
+                {(finding.category || 'GENERAL').replace(/_/g, ' ')}
               </span>
               {isVerified && (
                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full">

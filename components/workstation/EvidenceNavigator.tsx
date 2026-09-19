@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   X,
   ShieldCheck,
@@ -90,6 +90,7 @@ export function EvidenceNavigator({
 
   onClose,
 }: EvidenceNavigatorProps) {
+  const modalContainerRef = useRef<HTMLDivElement>(null);
   const [showSurroundingContext, setShowSurroundingContext] = useState(true);
   const [copiedQuestion, setCopiedQuestion] = useState(false);
   const [activeCompareTab, setActiveCompareTab] = useState<'both' | 'a' | 'b'>('both');
@@ -103,8 +104,9 @@ export function EvidenceNavigator({
   const [clauseDataA, setClauseDataA] = useState<FetchedClauseData | null>(null);
   const [clauseDataB, setClauseDataB] = useState<FetchedClauseData | null>(null);
 
-  // Close on Escape key
+  // Focus modal container on mount and handle Escape key
   useEffect(() => {
+    modalContainerRef.current?.focus();
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
@@ -117,96 +119,103 @@ export function EvidenceNavigator({
   }, [onClose]);
 
   // =========================================================================
-  // Single Audit Data Fetching & Resolution
+  // Single Audit Data Fetching & Resolution (Race Condition Free)
   // =========================================================================
-  const fetchSingleEvidence = useCallback(async (docId: string, clauseId: string, quote: string) => {
-    setAuditLoading(true);
-    setAuditFetchError(null);
+  useEffect(() => {
+    let isCancelled = false;
 
-    try {
-      const url = `/api/v1/evidence?document_id=${encodeURIComponent(docId)}&clause_id=${encodeURIComponent(clauseId)}&quote=${encodeURIComponent(quote)}&radius=400`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const data: FetchedClauseData = await res.json();
-        setAuditClauseData(data);
-      } else {
-        setAuditClauseData(null);
-        setAuditFetchError('Server context lookup unavailable. Displaying cached quote.');
-      }
-    } catch {
+    if (mode === 'audit' && finding) {
       setAuditClauseData(null);
-      setAuditFetchError('Could not connect to evidence service. Displaying cached quote.');
-    } finally {
+      setAuditFetchError(null);
+
+      if (documentId && finding.clause_id) {
+        setAuditLoading(true);
+        const quote = finding.verbatim_quote || '';
+        const url = `/api/v1/evidence?document_id=${encodeURIComponent(documentId)}&clause_id=${encodeURIComponent(finding.clause_id)}&quote=${encodeURIComponent(quote)}&radius=400`;
+
+        fetch(url)
+          .then(async (res) => {
+            if (isCancelled) return;
+            if (res.ok) {
+              const data: FetchedClauseData = await res.json();
+              if (!isCancelled) {
+                setAuditClauseData(data);
+                setAuditLoading(false);
+              }
+            } else {
+              if (!isCancelled) {
+                setAuditClauseData(null);
+                setAuditFetchError('Server context lookup unavailable. Displaying cached quote.');
+                setAuditLoading(false);
+              }
+            }
+          })
+          .catch(() => {
+            if (!isCancelled) {
+              setAuditClauseData(null);
+              setAuditFetchError('Could not connect to evidence service. Displaying cached quote.');
+              setAuditLoading(false);
+            }
+          });
+      } else {
+        setAuditLoading(false);
+      }
+    } else {
+      setAuditClauseData(null);
       setAuditLoading(false);
     }
-  }, []);
 
-  useEffect(() => {
-    if (mode === 'audit' && finding) {
-      if (documentId && finding.clause_id) {
-        fetchSingleEvidence(documentId, finding.clause_id, finding.verbatim_quote);
-      } else {
-        setAuditClauseData(null);
-      }
-    }
-  }, [mode, finding, documentId, fetchSingleEvidence]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [mode, finding, documentId]);
 
   // =========================================================================
-  // Comparison Data Fetching & Resolution
+  // Comparison Data Fetching & Resolution (Race Condition Free)
   // =========================================================================
-  const fetchComparisonEvidenceA = useCallback(async (docId: string, clauseId: string, quote: string) => {
-    try {
-      const url = `/api/v1/evidence?document_id=${encodeURIComponent(docId)}&clause_id=${encodeURIComponent(clauseId)}&quote=${encodeURIComponent(quote)}&radius=400`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const data: FetchedClauseData = await res.json();
-        setClauseDataA(data);
-      } else {
-        setClauseDataA(null);
-      }
-    } catch {
-      setClauseDataA(null);
-    }
-  }, []);
-
-  const fetchComparisonEvidenceB = useCallback(async (docId: string, clauseId: string, quote: string) => {
-    try {
-      const url = `/api/v1/evidence?document_id=${encodeURIComponent(docId)}&clause_id=${encodeURIComponent(clauseId)}&quote=${encodeURIComponent(quote)}&radius=400`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const data: FetchedClauseData = await res.json();
-        setClauseDataB(data);
-      } else {
-        setClauseDataB(null);
-      }
-    } catch {
-      setClauseDataB(null);
-    }
-  }, []);
-
   useEffect(() => {
+    let isCancelled = false;
+
     if (mode === 'compare' && comparisonFinding) {
+      setClauseDataA(null);
+      setClauseDataB(null);
+
       if (contractA_id && comparisonFinding.contract_a_source?.clause_id) {
-        fetchComparisonEvidenceA(
-          contractA_id,
-          comparisonFinding.contract_a_source.clause_id,
-          comparisonFinding.contract_a_source.exact_quote
-        );
-      } else {
-        setClauseDataA(null);
+        const quoteA = comparisonFinding.contract_a_source.exact_quote || '';
+        const urlA = `/api/v1/evidence?document_id=${encodeURIComponent(contractA_id)}&clause_id=${encodeURIComponent(comparisonFinding.contract_a_source.clause_id)}&quote=${encodeURIComponent(quoteA)}&radius=400`;
+        fetch(urlA)
+          .then(async (res) => {
+            if (isCancelled) return;
+            if (res.ok) {
+              const data: FetchedClauseData = await res.json();
+              if (!isCancelled) setClauseDataA(data);
+            }
+          })
+          .catch(() => {});
       }
 
       if (contractB_id && comparisonFinding.contract_b_source?.clause_id) {
-        fetchComparisonEvidenceB(
-          contractB_id,
-          comparisonFinding.contract_b_source.clause_id,
-          comparisonFinding.contract_b_source.exact_quote
-        );
-      } else {
-        setClauseDataB(null);
+        const quoteB = comparisonFinding.contract_b_source.exact_quote || '';
+        const urlB = `/api/v1/evidence?document_id=${encodeURIComponent(contractB_id)}&clause_id=${encodeURIComponent(comparisonFinding.contract_b_source.clause_id)}&quote=${encodeURIComponent(quoteB)}&radius=400`;
+        fetch(urlB)
+          .then(async (res) => {
+            if (isCancelled) return;
+            if (res.ok) {
+              const data: FetchedClauseData = await res.json();
+              if (!isCancelled) setClauseDataB(data);
+            }
+          })
+          .catch(() => {});
       }
+    } else {
+      setClauseDataA(null);
+      setClauseDataB(null);
     }
-  }, [mode, comparisonFinding, contractA_id, contractB_id, fetchComparisonEvidenceA, fetchComparisonEvidenceB]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [mode, comparisonFinding, contractA_id, contractB_id]);
 
   // =========================================================================
   // Index & Navigation
@@ -410,7 +419,9 @@ export function EvidenceNavigator({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150"
+        ref={modalContainerRef}
+        tabIndex={-1}
+        className="bg-white rounded-2xl max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150 outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ================================================================= */}
@@ -500,7 +511,7 @@ export function EvidenceNavigator({
               <>
                 <AttentionBadge level={finding.attention_level} size="sm" />
                 <span className="font-mono text-slate-600 bg-white border border-slate-200 px-2.5 py-0.5 rounded font-semibold uppercase">
-                  {finding.category.replace(/_/g, ' ')}
+                  {(finding.category || 'GENERAL').replace(/_/g, ' ')}
                 </span>
                 <span className="font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                   Clause: {finding.clause_id}
@@ -518,7 +529,7 @@ export function EvidenceNavigator({
                 <ComparisonStatusBadge status={comparisonFinding.status} />
                 <AttentionBadge level={comparisonFinding.attention_level} size="sm" />
                 <span className="font-mono text-slate-600 bg-white border border-slate-200 px-2.5 py-0.5 rounded font-semibold uppercase">
-                  {comparisonFinding.category.replace(/_/g, ' ')}
+                  {(comparisonFinding.category || 'GENERAL').replace(/_/g, ' ')}
                 </span>
               </>
             )}
@@ -628,11 +639,28 @@ export function EvidenceNavigator({
                         )}
                       </div>
 
-                      <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        <span>Independent Grounded Verification</span>
-                      </span>
+                      {(finding.verification_status === 'VERIFIED_EXACT' ||
+                        finding.verification_status === 'VERIFIED_NORMALIZED') &&
+                      auditResolved.isResolved ? (
+                        <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <span>Independent Grounded Verification</span>
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-mono text-amber-400 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          <span>{auditResolved.isResolved ? 'Unverified AI Finding' : 'Unmapped Source Quote'}</span>
+                        </span>
+                      )}
                     </div>
+
+                    {/* Ambiguity notice if quote matches multiple times */}
+                    {auditResolved.ambiguityNotice && (
+                      <div className="text-[11px] text-amber-300 font-mono bg-amber-950/50 border border-amber-800/50 px-2.5 py-1 rounded flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span>{auditResolved.ambiguityNotice}</span>
+                      </div>
+                    )}
 
                     {/* Source Clause Text with Verified Pure Mark Highlight */}
                     <div className="text-xs sm:text-sm font-serif leading-relaxed text-slate-200 select-text whitespace-pre-wrap">
@@ -754,6 +782,14 @@ export function EvidenceNavigator({
                             </div>
                           )}
 
+                          {/* Ambiguity notice */}
+                          {resolvedA.ambiguityNotice && (
+                            <div className="text-[11px] text-amber-300 font-mono bg-amber-950/50 border border-amber-800/50 px-2 py-1 rounded flex items-center gap-1.5">
+                              <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                              <span>{resolvedA.ambiguityNotice}</span>
+                            </div>
+                          )}
+
                           {/* Clause Text with Highlight */}
                           <div className="text-xs sm:text-sm font-serif leading-relaxed text-slate-200 select-text whitespace-pre-wrap">
                             {resolvedA.beforeText}
@@ -796,10 +832,17 @@ export function EvidenceNavigator({
                             ? `Page ${comparisonFinding.contract_a_source.page_number}`
                             : 'Page N/A'}
                         </span>
-                        <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                          <ShieldCheck className="w-3 h-3" />
-                          <span>Verified against Contract A</span>
-                        </span>
+                        {resolvedA.isResolved ? (
+                          <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3" />
+                            <span>Verified against Contract A</span>
+                          </span>
+                        ) : (
+                          <span className="text-amber-400 font-semibold flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" />
+                            <span>Unresolved in Contract A</span>
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -832,6 +875,14 @@ export function EvidenceNavigator({
                                 [... Context Before ...]
                               </span>
                               <p className="whitespace-pre-wrap">{resolvedB.surroundingBefore}</p>
+                            </div>
+                          )}
+
+                          {/* Ambiguity notice */}
+                          {resolvedB.ambiguityNotice && (
+                            <div className="text-[11px] text-amber-300 font-mono bg-amber-950/50 border border-amber-800/50 px-2 py-1 rounded flex items-center gap-1.5">
+                              <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                              <span>{resolvedB.ambiguityNotice}</span>
                             </div>
                           )}
 
@@ -877,10 +928,17 @@ export function EvidenceNavigator({
                             ? `Page ${comparisonFinding.contract_b_source.page_number}`
                             : 'Page N/A'}
                         </span>
-                        <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                          <ShieldCheck className="w-3 h-3" />
-                          <span>Verified against Contract B</span>
-                        </span>
+                        {resolvedB.isResolved ? (
+                          <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3" />
+                            <span>Verified against Contract B</span>
+                          </span>
+                        ) : (
+                          <span className="text-amber-400 font-semibold flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" />
+                            <span>Unresolved in Contract B</span>
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>

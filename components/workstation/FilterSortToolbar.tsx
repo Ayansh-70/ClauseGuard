@@ -36,7 +36,9 @@ export function FilterSortToolbar({
   ).length;
 
   // Derive unique categories present in current findings
-  const availableCategories = Array.from(new Set(findings.map((f) => f.category))).sort();
+  const availableCategories = Array.from(
+    new Set(findings.map((f) => f.category).filter(Boolean))
+  ).sort();
 
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white border border-slate-200 rounded-xl p-3 shadow-sm">

@@ -106,7 +106,7 @@ export function PriorityReviewSection({
                     <AttentionBadge level={finding.attention_level} size="sm" />
                   </div>
                   <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded uppercase tracking-wider">
-                    {finding.category.replace(/_/g, ' ')}
+                    {(finding.category || 'GENERAL').replace(/_/g, ' ')}
                   </span>
                 </div>
 

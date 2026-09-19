@@ -41,7 +41,7 @@ export function ComparisonFindingCard({
           <div className="flex items-center gap-1.5 flex-wrap">
             <ComparisonStatusBadge status={finding.status} />
             <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded uppercase tracking-wider">
-              {finding.category.replace(/_/g, ' ')}
+              {(finding.category || 'GENERAL').replace(/_/g, ' ')}
             </span>
           </div>
           <AttentionBadge level={finding.attention_level} size="sm" />
