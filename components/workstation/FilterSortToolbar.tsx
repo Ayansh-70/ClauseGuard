@@ -43,10 +43,17 @@ export function FilterSortToolbar({
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
       {/* Attention Tabs */}
-      <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+      <div
+        className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0"
+        role="tablist"
+        aria-label="Filter findings by attention level"
+      >
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeFilter === 'ALL'}
           onClick={() => onFilterChange('ALL')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors min-h-[36px] ${
             activeFilter === 'ALL'
               ? 'bg-slate-900 text-white'
               : 'text-slate-600 hover:bg-slate-100'
@@ -56,8 +63,11 @@ export function FilterSortToolbar({
         </button>
 
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeFilter === 'HIGH'}
           onClick={() => onFilterChange('HIGH')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors min-h-[36px] ${
             activeFilter === 'HIGH'
               ? 'bg-rose-100 text-rose-900 ring-1 ring-rose-300'
               : 'text-slate-600 hover:bg-rose-50 hover:text-rose-800'
@@ -67,8 +77,11 @@ export function FilterSortToolbar({
         </button>
 
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeFilter === 'MEDIUM'}
           onClick={() => onFilterChange('MEDIUM')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors min-h-[36px] ${
             activeFilter === 'MEDIUM'
               ? 'bg-amber-100 text-amber-900 ring-1 ring-amber-300'
               : 'text-slate-600 hover:bg-amber-50 hover:text-amber-800'
@@ -78,8 +91,11 @@ export function FilterSortToolbar({
         </button>
 
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeFilter === 'NOTICES'}
           onClick={() => onFilterChange('NOTICES')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors min-h-[36px] ${
             activeFilter === 'NOTICES'
               ? 'bg-slate-200 text-slate-900'
               : 'text-slate-600 hover:bg-slate-100'

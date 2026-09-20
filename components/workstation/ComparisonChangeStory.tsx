@@ -150,7 +150,7 @@ export function ComparisonChangeStory({
             <div
               key={group.category}
               onClick={() => onSelectFinding(group.topFinding)}
-              className={`border rounded-xl p-4 transition-all cursor-pointer flex flex-col justify-between space-y-3 group ${
+              className={`border rounded-xl p-4 transition-all cursor-pointer flex flex-col justify-between space-y-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
                 isSame
                   ? 'bg-slate-50/50 border-slate-200 hover:border-slate-300'
                   : 'bg-white border-slate-200 hover:border-amber-400 hover:shadow-sm'
@@ -168,7 +168,7 @@ export function ComparisonChangeStory({
               <div className="space-y-2">
                 {/* Category Header */}
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-900 group-hover:text-amber-700 transition-colors">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-900 group-hover:text-amber-700 transition-colors break-words">
                     {group.categoryLabel}
                   </span>
                   <div className="flex items-center gap-1.5">
@@ -178,7 +178,7 @@ export function ComparisonChangeStory({
                 </div>
 
                 {/* Plain-English Change Summary */}
-                <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+                <p className="text-xs text-slate-600 leading-relaxed line-clamp-2 break-words">
                   {group.topFinding.plain_english_summary}
                 </p>
 

@@ -69,33 +69,41 @@ export function WorkstationHeader({
 
         {/* Center: Workstation Mode Selector */}
         {onModeChange && (
-          <div className="flex items-center p-1 rounded-lg bg-slate-950 border border-slate-800 shadow-inner">
+          <div
+            role="group"
+            aria-label="Workstation view mode"
+            className="flex items-center p-1 rounded-lg bg-slate-950 border border-slate-800 shadow-inner"
+          >
             <button
               type="button"
               onClick={() => onModeChange('audit')}
               disabled={isAnalyzing}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              aria-pressed={activeMode === 'audit'}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold transition-all min-h-[32px] focus:outline-none focus:ring-2 focus:ring-amber-400 ${
                 activeMode === 'audit'
                   ? 'bg-slate-800 text-amber-300 shadow-sm ring-1 ring-slate-700'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Search className="w-3.5 h-3.5" />
-              <span>Review Document</span>
+              <Search className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Review Document</span>
+              <span className="sm:hidden">Review</span>
               <span className="sr-only">Audit Document</span>
             </button>
             <button
               type="button"
               onClick={() => onModeChange('compare')}
               disabled={isAnalyzing}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              aria-pressed={activeMode === 'compare'}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold transition-all min-h-[32px] focus:outline-none focus:ring-2 focus:ring-amber-400 ${
                 activeMode === 'compare'
                   ? 'bg-slate-800 text-amber-300 shadow-sm ring-1 ring-slate-700'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <GitCompareArrows className="w-3.5 h-3.5 text-amber-400" />
-              <span>Compare Documents</span>
+              <GitCompareArrows className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="hidden sm:inline">Compare Documents</span>
+              <span className="sm:hidden">Compare</span>
               <span className="sr-only">Compare Contracts</span>
             </button>
           </div>
@@ -105,9 +113,10 @@ export function WorkstationHeader({
         <div className="flex items-center gap-3">
           {onNewAudit && (
             <button
+              type="button"
               onClick={onNewAudit}
               disabled={isAnalyzing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-amber-400 min-h-[32px]"
               aria-label="Start New Audit"
             >
               <Plus className="w-3.5 h-3.5" />

@@ -85,7 +85,7 @@ export function PriorityReviewSection({
             <div
               key={finding.finding_id}
               onClick={() => onSelectFinding(finding)}
-              className="bg-white border border-slate-200 hover:border-amber-400 hover:shadow-md rounded-xl p-5 transition-all cursor-pointer flex flex-col justify-between space-y-4 group"
+              className="bg-white border border-slate-200 hover:border-amber-400 hover:shadow-md rounded-xl p-5 transition-all cursor-pointer flex flex-col justify-between space-y-4 group focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
               tabIndex={0}
               role="button"
               onKeyDown={(e) => {
@@ -111,12 +111,12 @@ export function PriorityReviewSection({
                 </div>
 
                 {/* Title */}
-                <h3 className="text-sm font-bold text-slate-900 group-hover:text-amber-700 transition-colors leading-snug">
+                <h3 className="text-sm font-bold text-slate-900 group-hover:text-amber-700 transition-colors leading-snug break-words">
                   {finding.title}
                 </h3>
 
                 {/* Plain-English Explanation */}
-                <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">
+                <p className="text-xs text-slate-600 leading-relaxed line-clamp-3 break-words">
                   {finding.plain_language_explanation}
                 </p>
 
@@ -126,7 +126,7 @@ export function PriorityReviewSection({
                     <span className="font-bold text-amber-900 block text-[10px] uppercase tracking-wider mb-0.5">
                       Why it matters:
                     </span>
-                    <p className="text-slate-700 line-clamp-2 leading-relaxed">
+                    <p className="text-slate-700 line-clamp-2 leading-relaxed break-words">
                       {finding.why_it_matters}
                     </p>
                   </div>

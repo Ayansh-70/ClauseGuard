@@ -112,11 +112,20 @@ export function ContractDropzone({
 
       {/* Drop zone container */}
       <div
+        role={selectedFile ? undefined : 'button'}
+        tabIndex={disabled || selectedFile ? -1 : 0}
+        aria-label={selectedFile ? undefined : 'Upload contract file: drag and drop or press Enter to browse'}
+        onKeyDown={(e) => {
+          if (!disabled && !selectedFile && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => !disabled && !selectedFile && fileInputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+        className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
           selectedFile
             ? 'border-emerald-500/60 bg-emerald-50/20'
             : isDragging
@@ -155,7 +164,7 @@ export function ContractDropzone({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={disabled}
-                className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+                className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors min-h-[36px] inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-amber-500"
               >
                 Change
               </button>
@@ -163,7 +172,7 @@ export function ContractDropzone({
                 type="button"
                 onClick={handleRemove}
                 disabled={disabled}
-                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
+                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors min-h-[36px] min-w-[36px] inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-rose-500"
                 title="Remove selected file"
                 aria-label="Remove selected file"
               >

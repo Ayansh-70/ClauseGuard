@@ -41,12 +41,12 @@ export function FindingCard({ finding, onSelect, onViewEvidence }: FindingCardPr
         </div>
 
         {/* Title */}
-        <h3 className="text-sm font-bold text-slate-900 group-hover:text-amber-700 transition-colors leading-snug">
+        <h3 className="text-sm font-bold text-slate-900 group-hover:text-amber-700 transition-colors leading-snug break-words">
           {finding.title}
         </h3>
 
         {/* 2. WHAT DOES IT SAY? (Plain-English Summary) */}
-        <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">
+        <p className="text-xs text-slate-600 leading-relaxed line-clamp-3 break-words">
           {finding.plain_language_explanation}
         </p>
 
@@ -56,7 +56,7 @@ export function FindingCard({ finding, onSelect, onViewEvidence }: FindingCardPr
             <span className="font-bold text-amber-900 block text-[10px] uppercase tracking-wider mb-0.5">
               Why it matters:
             </span>
-            <p className="line-clamp-2 text-slate-600">{finding.why_it_matters}</p>
+            <p className="line-clamp-2 text-slate-600 break-words">{finding.why_it_matters}</p>
           </div>
         )}
       </div>
@@ -99,20 +99,22 @@ export function FindingCard({ finding, onSelect, onViewEvidence }: FindingCardPr
           )}
 
           {onViewEvidence ? (
-            <span
+            <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onViewEvidence(finding);
               }}
-              className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded transition-all"
+              aria-label={`View source clause for ${finding.title}`}
+              className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 min-h-[32px] sm:min-h-[28px]"
             >
               <span>View clause</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </span>
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
           ) : (
             <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 group-hover:text-amber-800 group-hover:translate-x-0.5 transition-all">
               <span>Inspect evidence</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </span>
           )}
         </div>

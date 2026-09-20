@@ -39,6 +39,7 @@ export function DocumentOverview({
 }: DocumentOverviewProps) {
   const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement>(null);
+  const exportButtonRef = React.useRef<HTMLButtonElement>(null);
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -46,9 +47,19 @@ export function DocumentOverview({
         setExportMenuOpen(false);
       }
     }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && exportMenuOpen) {
+        setExportMenuOpen(false);
+        exportButtonRef.current?.focus();
+      }
+    }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [exportMenuOpen]);
 
   const handleExportHtml = () => {
     setExportMenuOpen(false);
@@ -77,7 +88,7 @@ export function DocumentOverview({
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 truncate" title={fileName}>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 truncate max-w-xs sm:max-w-md" title={fileName}>
                 {fileName}
               </h2>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
@@ -94,15 +105,18 @@ export function DocumentOverview({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end shrink-0">
           {/* Export Report Dropdown */}
           <div className="relative" ref={exportMenuRef}>
             <button
+              ref={exportButtonRef}
+              id="export-report-button"
               type="button"
               onClick={() => setExportMenuOpen((prev) => !prev)}
-              aria-haspopup="true"
+              aria-haspopup="menu"
               aria-expanded={exportMenuOpen}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg text-amber-900 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-300 transition-colors"
+              aria-controls="export-report-menu"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg text-amber-900 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-300 transition-colors min-h-[36px] focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
               <Download className="w-3.5 h-3.5 text-amber-700" />
               <span>Export Report</span>
@@ -110,11 +124,17 @@ export function DocumentOverview({
             </button>
 
             {exportMenuOpen && (
-              <div className="absolute right-0 mt-1.5 w-60 rounded-lg bg-white border border-slate-200 shadow-lg py-1 z-20 focus:outline-none">
+              <div
+                id="export-report-menu"
+                role="menu"
+                aria-labelledby="export-report-button"
+                className="absolute right-0 mt-1.5 w-60 rounded-lg bg-white border border-slate-200 shadow-lg py-1 z-20 focus:outline-none"
+              >
                 <button
                   type="button"
+                  role="menuitem"
                   onClick={handleExportHtml}
-                  className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-900 flex items-center gap-2.5 transition-colors"
+                  className="w-full text-left px-3.5 py-2.5 text-xs font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-900 flex items-center gap-2.5 transition-colors min-h-[44px] focus:outline-none focus:bg-amber-50"
                 >
                   <Printer className="w-4 h-4 text-slate-500 shrink-0" />
                   <div>
@@ -124,8 +144,9 @@ export function DocumentOverview({
                 </button>
                 <button
                   type="button"
+                  role="menuitem"
                   onClick={handleExportMarkdown}
-                  className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-900 flex items-center gap-2.5 transition-colors border-t border-slate-100"
+                  className="w-full text-left px-3.5 py-2.5 text-xs font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-900 flex items-center gap-2.5 transition-colors border-t border-slate-100 min-h-[44px] focus:outline-none focus:bg-amber-50"
                 >
                   <FileText className="w-4 h-4 text-slate-500 shrink-0" />
                   <div>
@@ -140,7 +161,7 @@ export function DocumentOverview({
           <button
             type="button"
             onClick={onReset}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors shrink-0 min-h-[36px] focus:outline-none focus:ring-2 focus:ring-slate-400"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Upload Another Contract</span>

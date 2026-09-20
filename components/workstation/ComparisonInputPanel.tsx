@@ -229,7 +229,7 @@ export function ComparisonInputPanel({
                       onChangeContractA({ file: null, rawText: '', fileName: '', mode: 'file' });
                     }}
                     disabled={isComparing || disabled}
-                    className="text-slate-400 hover:text-rose-600 p-1.5 rounded-md hover:bg-white transition-colors"
+                    className="text-slate-400 hover:text-rose-600 p-2 rounded-md hover:bg-white transition-colors min-h-[36px] min-w-[36px] inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-rose-500"
                     aria-label="Remove Contract A file"
                   >
                     <X className="w-4 h-4" />
@@ -237,6 +237,15 @@ export function ComparisonInputPanel({
                 </div>
               ) : (
                 <div
+                  role="button"
+                  tabIndex={isComparing || disabled ? -1 : 0}
+                  aria-label="Upload baseline contract file: drag and drop or press Enter to browse"
+                  onKeyDown={(e) => {
+                    if (!disabled && !isComparing && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      fileInputRefA.current?.click();
+                    }
+                  }}
                   onDragOver={(e) => {
                     e.preventDefault();
                     setIsDraggingA(true);
@@ -250,7 +259,7 @@ export function ComparisonInputPanel({
                     }
                   }}
                   onClick={() => fileInputRefA.current?.click()}
-                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                     isDraggingA
                       ? 'border-blue-500 bg-blue-50/50'
                       : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50/60'
@@ -258,6 +267,7 @@ export function ComparisonInputPanel({
                 >
                   <input
                     ref={fileInputRefA}
+                    id="compare-file-a-upload"
                     type="file"
                     accept=".pdf,.txt,.md"
                     className="hidden"
@@ -370,7 +380,7 @@ export function ComparisonInputPanel({
                       onChangeContractB({ file: null, rawText: '', fileName: '', mode: 'file' });
                     }}
                     disabled={isComparing || disabled}
-                    className="text-slate-400 hover:text-rose-600 p-1.5 rounded-md hover:bg-white transition-colors"
+                    className="text-slate-400 hover:text-rose-600 p-2 rounded-md hover:bg-white transition-colors min-h-[36px] min-w-[36px] inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-rose-500"
                     aria-label="Remove Contract B file"
                   >
                     <X className="w-4 h-4" />
@@ -378,6 +388,15 @@ export function ComparisonInputPanel({
                 </div>
               ) : (
                 <div
+                  role="button"
+                  tabIndex={isComparing || disabled ? -1 : 0}
+                  aria-label="Upload revised contract file: drag and drop or press Enter to browse"
+                  onKeyDown={(e) => {
+                    if (!disabled && !isComparing && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      fileInputRefB.current?.click();
+                    }
+                  }}
                   onDragOver={(e) => {
                     e.preventDefault();
                     setIsDraggingB(true);
@@ -391,7 +410,7 @@ export function ComparisonInputPanel({
                     }
                   }}
                   onClick={() => fileInputRefB.current?.click()}
-                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
                     isDraggingB
                       ? 'border-amber-500 bg-amber-50/50'
                       : 'border-slate-300 hover:border-amber-400 hover:bg-slate-50/60'
@@ -399,6 +418,7 @@ export function ComparisonInputPanel({
                 >
                   <input
                     ref={fileInputRefB}
+                    id="compare-file-b-upload"
                     type="file"
                     accept=".pdf,.txt,.md"
                     className="hidden"

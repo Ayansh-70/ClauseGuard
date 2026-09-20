@@ -103,9 +103,12 @@ export function EvidenceNavigator({
   // Comparison dual fetched state
   const [clauseDataA, setClauseDataA] = useState<FetchedClauseData | null>(null);
   const [clauseDataB, setClauseDataB] = useState<FetchedClauseData | null>(null);
+  const previouslyFocusedElement = useRef<HTMLElement | null>(null);
 
   // Focus modal container on mount and handle Escape key
   useEffect(() => {
+    previouslyFocusedElement.current =
+      typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null;
     modalContainerRef.current?.focus();
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -115,6 +118,7 @@ export function EvidenceNavigator({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
+      previouslyFocusedElement.current?.focus?.();
     };
   }, [onClose]);
 
@@ -462,7 +466,7 @@ export function EvidenceNavigator({
                   type="button"
                   onClick={handlePrevFinding}
                   disabled={mode === 'audit' ? currentAuditIndex <= 0 : currentCompareIndex <= 0}
-                  className="p-1.5 text-slate-300 hover:text-white disabled:opacity-30 disabled:hover:text-slate-300 rounded transition-colors"
+                  className="p-1.5 text-slate-300 hover:text-white disabled:opacity-30 disabled:hover:text-slate-300 rounded transition-colors min-h-[36px] min-w-[36px] inline-flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-amber-400"
                   aria-label="Previous finding"
                   title="Previous finding"
                 >
@@ -481,7 +485,7 @@ export function EvidenceNavigator({
                       ? currentAuditIndex >= allAuditFindings.length - 1
                       : currentCompareIndex >= allComparisonFindings.length - 1
                   }
-                  className="p-1.5 text-slate-300 hover:text-white disabled:opacity-30 disabled:hover:text-slate-300 rounded transition-colors"
+                  className="p-1.5 text-slate-300 hover:text-white disabled:opacity-30 disabled:hover:text-slate-300 rounded transition-colors min-h-[36px] min-w-[36px] inline-flex items-center justify-center focus:outline-none focus:ring-1 focus:ring-amber-400"
                   aria-label="Next finding"
                   title="Next finding"
                 >
@@ -494,7 +498,7 @@ export function EvidenceNavigator({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors shrink-0"
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-amber-400"
               aria-label="Close navigator"
             >
               <X className="w-5 h-5" />
@@ -614,7 +618,7 @@ export function EvidenceNavigator({
                       <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1.5">
                         [... Preceding Context in Document ...]
                       </div>
-                      <p className="whitespace-pre-wrap">{auditResolved.surroundingBefore}</p>
+                      <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{auditResolved.surroundingBefore}</p>
                     </div>
                   )}
 
@@ -663,7 +667,7 @@ export function EvidenceNavigator({
                     )}
 
                     {/* Source Clause Text with Verified Pure Mark Highlight */}
-                    <div className="text-xs sm:text-sm font-serif leading-relaxed text-slate-200 select-text whitespace-pre-wrap">
+                    <div className="text-xs sm:text-sm font-serif leading-relaxed text-slate-200 select-text whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                       {auditResolved.beforeText}
                       {auditResolved.highlightText ? (
                         <mark className="bg-amber-300 text-slate-950 font-semibold px-1 py-0.5 rounded shadow-2xs border border-amber-400">
@@ -690,7 +694,7 @@ export function EvidenceNavigator({
                       <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-1.5">
                         [... Succeeding Context in Document ...]
                       </div>
-                      <p className="whitespace-pre-wrap">{auditResolved.surroundingAfter}</p>
+                      <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{auditResolved.surroundingAfter}</p>
                     </div>
                   )}
                 </div>
@@ -704,16 +708,22 @@ export function EvidenceNavigator({
           {mode === 'compare' && comparisonFinding && (
             <div className="space-y-4">
               {/* Tab Selector for small screens or focused view */}
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-200 pb-2 gap-2">
                 <span className="font-bold text-xs uppercase tracking-wider text-slate-900">
                   Dual-Contract Verified Evidence
                 </span>
 
-                <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-semibold">
+                <div
+                  className="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-semibold flex-wrap gap-1"
+                  role="tablist"
+                  aria-label="Evidence comparison view tabs"
+                >
                   <button
                     type="button"
+                    role="tab"
+                    aria-selected={activeCompareTab === 'both'}
                     onClick={() => setActiveCompareTab('both')}
-                    className={`px-3 py-1 rounded-md transition-all ${
+                    className={`px-3 py-1.5 rounded-md transition-all min-h-[32px] ${
                       activeCompareTab === 'both'
                         ? 'bg-white text-slate-900 shadow-2xs'
                         : 'text-slate-600 hover:text-slate-900'
@@ -723,8 +733,10 @@ export function EvidenceNavigator({
                   </button>
                   <button
                     type="button"
+                    role="tab"
+                    aria-selected={activeCompareTab === 'a'}
                     onClick={() => setActiveCompareTab('a')}
-                    className={`px-3 py-1 rounded-md transition-all ${
+                    className={`px-3 py-1.5 rounded-md transition-all min-h-[32px] ${
                       activeCompareTab === 'a'
                         ? 'bg-blue-600 text-white shadow-2xs'
                         : 'text-slate-600 hover:text-slate-900'
@@ -734,8 +746,10 @@ export function EvidenceNavigator({
                   </button>
                   <button
                     type="button"
+                    role="tab"
+                    aria-selected={activeCompareTab === 'b'}
                     onClick={() => setActiveCompareTab('b')}
-                    className={`px-3 py-1 rounded-md transition-all ${
+                    className={`px-3 py-1.5 rounded-md transition-all min-h-[32px] ${
                       activeCompareTab === 'b'
                         ? 'bg-amber-600 text-white shadow-2xs'
                         : 'text-slate-600 hover:text-slate-900'
@@ -778,7 +792,7 @@ export function EvidenceNavigator({
                               <span className="text-[9px] uppercase font-bold text-slate-500 block">
                                 [... Context Before ...]
                               </span>
-                              <p className="whitespace-pre-wrap">{resolvedA.surroundingBefore}</p>
+                              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{resolvedA.surroundingBefore}</p>
                             </div>
                           )}
 
@@ -791,7 +805,7 @@ export function EvidenceNavigator({
                           )}
 
                           {/* Clause Text with Highlight */}
-                          <div className="text-xs sm:text-sm font-serif leading-relaxed text-slate-200 select-text whitespace-pre-wrap">
+                          <div className="text-xs sm:text-sm font-serif leading-relaxed text-slate-200 select-text whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                             {resolvedA.beforeText}
                             {resolvedA.highlightText ? (
                               <mark className="bg-blue-300 text-slate-950 font-semibold px-1 py-0.5 rounded shadow-2xs border border-blue-400">
@@ -807,7 +821,7 @@ export function EvidenceNavigator({
                               <span className="text-[9px] uppercase font-bold text-slate-500 block">
                                 [... Context After ...]
                               </span>
-                              <p className="whitespace-pre-wrap">{resolvedA.surroundingAfter}</p>
+                              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{resolvedA.surroundingAfter}</p>
                             </div>
                           )}
                         </>
@@ -874,7 +888,7 @@ export function EvidenceNavigator({
                               <span className="text-[9px] uppercase font-bold text-slate-500 block">
                                 [... Context Before ...]
                               </span>
-                              <p className="whitespace-pre-wrap">{resolvedB.surroundingBefore}</p>
+                              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{resolvedB.surroundingBefore}</p>
                             </div>
                           )}
 
@@ -887,7 +901,7 @@ export function EvidenceNavigator({
                           )}
 
                           {/* Clause Text with Highlight */}
-                          <div className="text-xs sm:text-sm font-serif leading-relaxed text-slate-200 select-text whitespace-pre-wrap">
+                          <div className="text-xs sm:text-sm font-serif leading-relaxed text-slate-200 select-text whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                             {resolvedB.beforeText}
                             {resolvedB.highlightText ? (
                               <mark className="bg-amber-300 text-slate-950 font-semibold px-1 py-0.5 rounded shadow-2xs border border-amber-400">
@@ -903,7 +917,7 @@ export function EvidenceNavigator({
                               <span className="text-[9px] uppercase font-bold text-slate-500 block">
                                 [... Context After ...]
                               </span>
-                              <p className="whitespace-pre-wrap">{resolvedB.surroundingAfter}</p>
+                              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{resolvedB.surroundingAfter}</p>
                             </div>
                           )}
                         </>
@@ -983,7 +997,7 @@ export function EvidenceNavigator({
                 </button>
               </div>
 
-              <div className="bg-blue-50/60 border border-blue-200 rounded-xl p-4 text-xs sm:text-sm text-blue-950 font-medium leading-relaxed">
+              <div className="bg-blue-50/60 border border-blue-200 rounded-xl p-4 text-xs sm:text-sm text-blue-950 font-medium leading-relaxed break-words [overflow-wrap:anywhere]">
                 {mode === 'audit'
                   ? finding?.suggested_question_for_counsel
                   : comparisonFinding?.suggested_question_for_counsel}
@@ -995,14 +1009,14 @@ export function EvidenceNavigator({
         {/* ================================================================= */}
         {/* NAVIGATOR FOOTER */}
         {/* ================================================================= */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 shrink-0">
-          <span className="text-[11px]">
+        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 gap-3 shrink-0">
+          <span className="text-[11px] leading-snug">
             Independent grounded quote verification against canonical agreement text.
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition-colors"
+            className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition-colors min-h-[44px] inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-slate-900 shrink-0"
           >
             Done
           </button>

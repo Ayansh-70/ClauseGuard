@@ -28,15 +28,32 @@ export function FindingDetailModal({
   onViewSourceClause,
 }: FindingDetailModalProps) {
   const [copiedQuestion, setCopiedQuestion] = useState(false);
+  const previouslyFocusedElement = React.useRef<HTMLElement | null>(null);
+  const modalContainerRef = React.useRef<HTMLDivElement>(null);
 
-  // Close on Escape key press
+  // Focus management and body scroll lock
   useEffect(() => {
+    if (finding) {
+      previouslyFocusedElement.current =
+        typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null;
+      document.body.style.overflow = 'hidden';
+      // Defer focus slightly to ensure DOM is ready
+      setTimeout(() => {
+        modalContainerRef.current?.focus();
+      }, 50);
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'unset';
+      previouslyFocusedElement.current?.focus?.();
+    };
+  }, [finding, onClose]);
 
   if (!finding) return null;
 
@@ -67,7 +84,9 @@ export function FindingDetailModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full overflow-hidden my-8 max-h-[90vh] flex flex-col"
+        ref={modalContainerRef}
+        tabIndex={-1}
+        className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full overflow-hidden my-8 max-h-[90vh] flex flex-col outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -89,15 +108,16 @@ export function FindingDetailModal({
             </div>
             <h2
               id="modal-finding-title"
-              className="text-lg font-bold text-slate-900 tracking-tight"
+              className="text-lg font-bold text-slate-900 tracking-tight break-words"
             >
               {finding.title}
             </h2>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-full transition-colors shrink-0"
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-full transition-colors shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-amber-500"
             aria-label="Close details"
           >
             <X className="w-5 h-5" />
@@ -132,7 +152,7 @@ export function FindingDetailModal({
               <FileText className="w-3.5 h-3.5 text-amber-600" />
               <span>Plain-English Explanation</span>
             </h3>
-            <div className="text-sm text-slate-700 leading-relaxed bg-slate-50 border border-slate-200 rounded-lg p-4">
+            <div className="text-sm text-slate-700 leading-relaxed bg-slate-50 border border-slate-200 rounded-lg p-4 break-words [overflow-wrap:anywhere]">
               {finding.plain_language_explanation}
             </div>
           </div>
@@ -143,7 +163,7 @@ export function FindingDetailModal({
               <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
               <span>Commercial Risk & Practical Implication</span>
             </h3>
-            <div className="text-sm text-slate-700 leading-relaxed bg-amber-50/40 border border-amber-200 rounded-lg p-4">
+            <div className="text-sm text-slate-700 leading-relaxed bg-amber-50/40 border border-amber-200 rounded-lg p-4 break-words [overflow-wrap:anywhere]">
               {finding.why_it_matters}
             </div>
           </div>
@@ -159,7 +179,7 @@ export function FindingDetailModal({
                 <button
                   type="button"
                   onClick={() => onViewSourceClause(finding)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 hover:text-amber-900 bg-amber-100/80 hover:bg-amber-200/80 border border-amber-300 px-3 py-1 rounded-lg transition-colors shadow-2xs"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 hover:text-amber-900 bg-amber-100/80 hover:bg-amber-200/80 border border-amber-300 px-3 py-1.5 rounded-lg transition-colors shadow-2xs focus:outline-none focus:ring-2 focus:ring-amber-500 min-h-[36px]"
                 >
                   <Compass className="w-3.5 h-3.5 text-amber-700" />
                   <span>View source clause</span>
@@ -204,14 +224,14 @@ export function FindingDetailModal({
 
               {/* Exact Verbatim Text Block */}
               <div className="relative">
-                <p className="font-serif italic text-slate-200 text-sm leading-relaxed border-l-2 border-amber-400 pl-3 py-1">
+                <p className="font-serif italic text-slate-200 text-sm leading-relaxed border-l-2 border-amber-400 pl-3 py-1 break-words [overflow-wrap:anywhere]">
                   &ldquo;{finding.verbatim_quote}&rdquo;
                 </p>
               </div>
 
               {/* Analytical reasoning anchor */}
               {finding.evidence && (
-                <div className="text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
+                <div className="text-[11px] text-slate-400 pt-2 border-t border-slate-800/80 break-words [overflow-wrap:anywhere]">
                   <span className="text-slate-300 font-semibold">Grounded Analysis: </span>
                   {finding.evidence}
                 </div>
@@ -223,7 +243,7 @@ export function FindingDetailModal({
                   <button
                     type="button"
                     onClick={() => onViewSourceClause(finding)}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors py-1 focus:outline-none focus:underline"
                   >
                     <span>Inspect surrounding context in navigator</span>
                     <Compass className="w-3.5 h-3.5 ml-1" />
@@ -244,7 +264,7 @@ export function FindingDetailModal({
                 <button
                   type="button"
                   onClick={handleCopyQuestion}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition-colors"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 min-h-[32px]"
                 >
                   {copiedQuestion ? (
                     <>
@@ -260,7 +280,7 @@ export function FindingDetailModal({
                 </button>
               </div>
 
-              <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-4 text-xs text-blue-950 font-medium leading-relaxed">
+              <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-4 text-xs text-blue-950 font-medium leading-relaxed break-words [overflow-wrap:anywhere]">
                 {finding.suggested_question_for_counsel}
               </div>
             </div>
@@ -273,7 +293,7 @@ export function FindingDetailModal({
                 <Sparkles className="w-3.5 h-3.5 text-purple-600" />
                 <span>Illustrative Drafting Alternative (Informational)</span>
               </h3>
-              <div className="bg-purple-50/40 border border-purple-200 rounded-lg p-4 space-y-2">
+              <div className="bg-purple-50/40 border border-purple-200 rounded-lg p-4 space-y-2 break-words [overflow-wrap:anywhere]">
                 <p className="text-xs text-purple-950 font-serif italic">
                   &ldquo;{finding.suggested_alternative}&rdquo;
                 </p>
@@ -288,11 +308,12 @@ export function FindingDetailModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <span>{SHORT_DISCLAIMER}</span>
+        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 gap-3">
+          <span className="leading-snug">{SHORT_DISCLAIMER}</span>
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-md transition-colors"
+            className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition-colors min-h-[44px] inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-slate-900 shrink-0"
           >
             Done
           </button>

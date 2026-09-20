@@ -28,19 +28,27 @@ export function ComparisonDetailModal({
   onViewEvidence,
 }: ComparisonDetailModalProps) {
   const [copiedQuestion, setCopiedQuestion] = useState(false);
+  const previouslyFocusedElement = React.useRef<HTMLElement | null>(null);
+  const modalContainerRef = React.useRef<HTMLDivElement>(null);
 
-  // Close on Escape key
+  // Close on Escape key and manage focus & body scroll
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     if (finding) {
+      previouslyFocusedElement.current =
+        typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null;
       window.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
+      setTimeout(() => {
+        modalContainerRef.current?.focus();
+      }, 50);
     }
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
+      previouslyFocusedElement.current?.focus?.();
     };
   }, [finding, onClose]);
 
@@ -78,7 +86,9 @@ export function ComparisonDetailModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150"
+        ref={modalContainerRef}
+        tabIndex={-1}
+        className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150 outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -98,7 +108,7 @@ export function ComparisonDetailModal({
             </div>
             <h2
               id="comparison-finding-title"
-              className="text-lg sm:text-xl font-bold text-slate-900 leading-snug"
+              className="text-lg sm:text-xl font-bold text-slate-900 leading-snug break-words"
             >
               {finding.title}
             </h2>
@@ -106,7 +116,7 @@ export function ComparisonDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 p-2 rounded-xl hover:bg-slate-200/60 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 shrink-0"
+            className="text-slate-400 hover:text-slate-700 p-2 rounded-xl hover:bg-slate-200/60 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center"
             aria-label="Close dialog"
           >
             <X className="w-5 h-5" />
@@ -150,7 +160,7 @@ export function ComparisonDetailModal({
               <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                 Plain-English Explanation
               </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed break-words [overflow-wrap:anywhere]">
                 {finding.plain_english_summary}
               </p>
             </div>
@@ -159,7 +169,7 @@ export function ComparisonDetailModal({
               <h3 className="text-xs font-bold text-amber-950 uppercase tracking-wider">
                 Commercial Implication
               </h3>
-              <p className="text-xs sm:text-sm text-amber-900 leading-relaxed">
+              <p className="text-xs sm:text-sm text-amber-900 leading-relaxed break-words [overflow-wrap:anywhere]">
                 {finding.practical_implication}
               </p>
             </div>
@@ -176,7 +186,7 @@ export function ComparisonDetailModal({
                 <button
                   type="button"
                   onClick={() => onViewEvidence(finding)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 hover:text-amber-900 bg-amber-100/80 hover:bg-amber-200/80 border border-amber-300 px-3 py-1 rounded-lg transition-colors shadow-2xs"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 hover:text-amber-900 bg-amber-100/80 hover:bg-amber-200/80 border border-amber-300 px-3 py-1.5 rounded-lg transition-colors shadow-2xs focus:outline-none focus:ring-2 focus:ring-amber-500 min-h-[36px]"
                 >
                   <Compass className="w-3.5 h-3.5 text-amber-700" />
                   <span>Open in Evidence Navigator</span>
@@ -223,7 +233,7 @@ export function ComparisonDetailModal({
                       </div>
 
                       {/* Verbatim Quote Box */}
-                      <blockquote className="p-3 rounded-lg bg-white border border-blue-200 text-xs sm:text-sm font-serif italic text-slate-800 leading-relaxed shadow-sm">
+                      <blockquote className="p-3 rounded-lg bg-white border border-blue-200 text-xs sm:text-sm font-serif italic text-slate-800 leading-relaxed shadow-sm break-words [overflow-wrap:anywhere]">
                         &ldquo;{finding.contract_a_source.exact_quote}&rdquo;
                       </blockquote>
                     </div>
@@ -291,7 +301,7 @@ export function ComparisonDetailModal({
                       </div>
 
                       {/* Verbatim Quote Box */}
-                      <blockquote className="p-3 rounded-lg bg-white border border-amber-200 text-xs sm:text-sm font-serif italic text-slate-800 leading-relaxed shadow-sm">
+                      <blockquote className="p-3 rounded-lg bg-white border border-amber-200 text-xs sm:text-sm font-serif italic text-slate-800 leading-relaxed shadow-sm break-words [overflow-wrap:anywhere]">
                         &ldquo;{finding.contract_b_source.exact_quote}&rdquo;
                       </blockquote>
                     </div>
@@ -333,7 +343,7 @@ export function ComparisonDetailModal({
                 <button
                   type="button"
                   onClick={handleCopyQuestion}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-300 hover:text-white px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 transition-colors"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-300 hover:text-white px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 min-h-[32px]"
                 >
                   {copiedQuestion ? (
                     <>
@@ -348,7 +358,7 @@ export function ComparisonDetailModal({
                   )}
                 </button>
               </div>
-              <p className="text-xs sm:text-sm text-slate-200 font-sans italic leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-200 font-sans italic leading-relaxed break-words [overflow-wrap:anywhere]">
                 &ldquo;{finding.suggested_question_for_counsel}&rdquo;
               </p>
             </div>
@@ -356,12 +366,12 @@ export function ComparisonDetailModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
-          <p className="text-[11px]">{SHORT_DISCLAIMER} — Informational comparison analysis only.</p>
+        <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500 gap-3">
+          <p className="text-[11px] leading-snug">{SHORT_DISCLAIMER} — Informational comparison analysis only.</p>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 font-bold text-slate-800 text-xs transition-colors"
+            className="px-5 py-2.5 rounded-lg bg-slate-200 hover:bg-slate-300 font-bold text-slate-800 text-xs transition-colors min-h-[44px] inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-slate-400 shrink-0"
           >
             Close
           </button>
