@@ -42,7 +42,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold">
             <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-            <span>Deterministic Grounding & Zero Hallucination Architecture</span>
+            <span>Deterministic Grounding & Independent Source Verification</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-[1.15]">

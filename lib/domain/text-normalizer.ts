@@ -1,6 +1,6 @@
 /**
- * JuriLens Deterministic Text Normalizer
- * Enforces canonical consistency across the entire pipeline.
+ * ClauseGuard Deterministic Text Normalizer
+ * Enforces canonical representation without modifying substantive legal semantics.
  *
  * Invariant: Never rewrite, paraphrase, or alter legal wording, numbers, or terms.
  */

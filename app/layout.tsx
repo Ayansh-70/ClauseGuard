@@ -3,8 +3,8 @@ import './globals.css';
 import { GLOBAL_LEGAL_DISCLAIMER } from '@/lib/constants/disclaimers';
 
 export const metadata: Metadata = {
-  title: 'JuriLens — ClauseRadar',
-  description: 'Deterministic Contract Intelligence & Negotiation Workspace',
+  title: 'ClauseGuard — Legal Document Intelligence Workstation',
+  description: 'Grounded legal document intelligence workstation with independent source verification.',
 };
 
 export default function RootLayout({

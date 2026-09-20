@@ -1,7 +1,6 @@
 /**
- * JuriLens / ClauseRadar — Authoritative Domain Types
- * Core domain contracts for document ingestion, structural parsing,
- * security scanning, and downstream AI analysis.
+ * ClauseGuard — Authoritative Domain Types
+ * Strict domain entities, interfaces, and invariant definitions for contract understanding.
  */
 
 // Attention classification replacing arbitrary risk scores
