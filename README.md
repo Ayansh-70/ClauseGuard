@@ -183,7 +183,7 @@ npm run build
 
 ## Security & Privacy Architecture
 
-- **Transient Memory-Only Processing:** Uploaded contracts are parsed in volatile server RAM and discarded after the request completes. No documents are stored on disk, S3, or external databases.
+- **Transient Memory-Only Processing:** Uploaded contracts are parsed and held strictly in volatile server RAM (bounded in-memory LRU cache with a 2-hour TTL to serve the Evidence Navigator and report exports). No documents are ever written to disk, SQLite, S3, or external persistent databases.
 - **Zero Browser Storage:** Contract text, quotes, and findings are never written to `localStorage` or `sessionStorage`. Active analysis lives solely in volatile React state.
 - **Prompt-Injection Defense:** Contracts are enclosed in rigid `<untrusted_contract_text>` XML wrappers. Breakout tokens and override directives (`SYSTEM OVERRIDE:`, `IGNORE ALL INSTRUCTIONS`) are sanitized and flagged.
 - **Independent Quote Verification:** AI citations are verified against source contract text before being presented to users. Fabricated quotes are quarantined and marked unverified.
