@@ -83,7 +83,7 @@ ClauseGuard is an engineered, document-grounded legal intelligence workstation. 
    - Inspects file extension (`.pdf`, `.txt`, `.md`) and MIME types.
    - Enforces strict size bounding: $\le 500\text{ KB}$ and $\le 180,000$ characters.
 2. **Deterministic Extraction & Normalization (`lib/domain/text-extractor.ts`, `text-normalizer.ts`):**
-   - Extracts page-delimited text via `pdf-parse` or plain UTF-8 decoding.
+   - Extracts page-delimited text via serverless-native `unpdf` or plain UTF-8 decoding.
    - Normalizes line breaks (`\r\n` $\to$ `\n`), strips null bytes and zero-width artifacts, while strictly preserving punctuation, numerical coordinates, and legal terms.
    - Generates deterministic document SHA-256 hash and stable ID: `doc_<sha256[:12]>`.
 3. **Structural Heading & Section Detection (`lib/domain/structure-detector.ts`):**

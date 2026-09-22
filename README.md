@@ -85,7 +85,7 @@ Know What to Ask Next (1-Click Actionable Questions for Legal Counsel)
 - **Framework:** [Next.js 15](https://nextjs.org/) (App Router, React Server Components, Route Handlers)
 - **UI & State:** [React 19](https://react.dev/), [Tailwind CSS 3](https://tailwindcss.com/), [Lucide React](https://lucide.dev/) icons
 - **Type Safety & Validation:** [TypeScript 5](https://www.typescriptlang.org/), [Zod 3](https://zod.dev/)
-- **Document Parsing:** [`pdf-parse`](https://www.npmjs.com/package/pdf-parse) for PDF extraction, native UTF-8 streaming for text/markdown
+- **Document Parsing:** [`unpdf`](https://www.npmjs.com/package/unpdf) for zero-dependency, serverless-native PDF extraction, native UTF-8 streaming for text/markdown
 - **AI Inference:** Google Gemini 2.5 Flash via official [`@google/genai`](https://www.npmjs.com/package/@google/genai) SDK
 - **Offline & Demo Fallback:** Built-in deterministic `MockGeminiProvider` (100% offline evaluation without API key)
 - **Testing:** [Vitest 3](https://vitest.dev/), `@testing-library/react`, `jsdom` (283 passing tests across 47 suites)

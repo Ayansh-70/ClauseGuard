@@ -41,35 +41,26 @@ export class PdfExtractor implements TextExtractor {
 
   async extract(buffer: Buffer, format: SupportedDocumentFormat): Promise<ExtractionResult> {
     try {
-      // Dynamic require ensures pdf-parse stays server-side
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pdf = require('pdf-parse');
+      // Dynamic import ensures unpdf stays server-side
+      const { getDocumentProxy, extractText } = await import('unpdf');
 
+      const pdf = await getDocumentProxy(new Uint8Array(buffer));
+      const { totalPages, text } = await extractText(pdf, { mergePages: false });
+
+      const pageTexts = Array.isArray(text) ? text : [text];
       const pagesList: { page_number: number; text: string }[] = [];
-      let currentPage = 1;
 
-      // Custom page renderer to capture page-by-page text content
-      const options = {
-        pagerender: function (pageData: { getTextContent: () => Promise<{ items: Array<{ str: string }> }> }) {
-          return pageData.getTextContent().then((textContent: { items: Array<{ str: string }> }) => {
-            let pageText = '';
-            for (const item of textContent.items) {
-              pageText += item.str + ' ';
-            }
-            const cleanText = sanitizeControlCharacters(pageText).trim();
-            pagesList.push({
-              page_number: currentPage++,
-              text: cleanText,
-            });
-            return cleanText;
-          });
-        },
-      };
+      for (let i = 0; i < pageTexts.length; i++) {
+        const cleanText = sanitizeControlCharacters(pageTexts[i] || '').trim();
+        pagesList.push({
+          page_number: i + 1,
+          text: cleanText,
+        });
+      }
 
-      const data = await pdf(buffer, options);
-      const combinedText = sanitizeControlCharacters(data.text || '');
+      const combinedText = pagesList.map((p) => p.text).filter(Boolean).join('\n\n').trim();
 
-      if (combinedText.trim().length === 0) {
+      if (combinedText.length === 0) {
         throw new AppError(
           'PDF_EXTRACTION_FAILED',
           'PDF extraction yielded empty text. The file may be scanned images or password protected.',
@@ -77,22 +68,11 @@ export class PdfExtractor implements TextExtractor {
         );
       }
 
-      // If per-page collection was empty, fallback to total text on page 1
-      const finalPages =
-        pagesList.length > 0
-          ? pagesList
-          : [
-              {
-                page_number: 1,
-                text: combinedText,
-              },
-            ];
-
       return {
         raw_text: combinedText,
-        pages: finalPages,
+        pages: pagesList.length > 0 ? pagesList : [{ page_number: 1, text: combinedText }],
         format,
-        warnings: data.numpages > 1 ? [] : ['Single-page document extracted.'],
+        warnings: totalPages > 1 ? [] : ['Single-page document extracted.'],
       };
     } catch (err: unknown) {
       if (err instanceof AppError) {
