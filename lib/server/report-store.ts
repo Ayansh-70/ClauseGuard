@@ -1,8 +1,9 @@
 import 'server-only';
-import { AuditResult, ComparisonResult, StructuredDocument } from '@/types/domain';
+import { AuditResult, Clause, ComparisonResult, DocumentSection, StructuredDocument } from '@/types/domain';
 
 const MAX_STORE_ENTRIES = 100;
 const STORE_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+const PRUNE_THROTTLE_MS = 30 * 1000; // 30 seconds
 
 interface CachedEntry<T> {
   data: T;
@@ -10,6 +11,36 @@ interface CachedEntry<T> {
 }
 
 const ID_REGEX = /^[a-zA-Z0-9_\-.]{3,100}$/;
+
+const DOC_CLAUSE_LOOKUP = new WeakMap<StructuredDocument, Map<string, Clause>>();
+const DOC_SECTION_LOOKUP = new WeakMap<StructuredDocument, Map<string, DocumentSection>>();
+
+function getClauseLookup(doc: StructuredDocument): Map<string, Clause> {
+  let map = DOC_CLAUSE_LOOKUP.get(doc);
+  if (!map) {
+    map = new Map();
+    for (const c of doc.clauses) {
+      map.set(c.clause_id, c);
+      if (c.number_label) {
+        map.set(c.number_label, c);
+      }
+    }
+    DOC_CLAUSE_LOOKUP.set(doc, map);
+  }
+  return map;
+}
+
+function getSectionLookup(doc: StructuredDocument): Map<string, DocumentSection> {
+  let map = DOC_SECTION_LOOKUP.get(doc);
+  if (!map) {
+    map = new Map();
+    for (const s of doc.sections) {
+      map.set(s.section_id, s);
+    }
+    DOC_SECTION_LOOKUP.set(doc, map);
+  }
+  return map;
+}
 
 /**
  * Validates a document or comparison report ID.
@@ -29,6 +60,7 @@ class ReportStore {
   private auditStore = new Map<string, CachedEntry<AuditResult>>();
   private comparisonStore = new Map<string, CachedEntry<ComparisonResult>>();
   private documentStore = new Map<string, CachedEntry<StructuredDocument>>();
+  private lastPruneTime = 0;
 
   /**
    * Saves an AuditResult indexed by document_id
@@ -195,9 +227,8 @@ class ReportStore {
     const doc = this.getDocument(documentId);
     if (!doc) return null;
 
-    const clause = doc.clauses.find(
-      (c) => c.clause_id === clauseId || (c.number_label && c.number_label === clauseId)
-    );
+    const clauseMap = getClauseLookup(doc);
+    const clause = clauseMap.get(clauseId);
     if (!clause) return null;
 
     const safeRadius = Math.max(0, Math.min(2000, radius));
@@ -213,7 +244,7 @@ class ReportStore {
     );
 
     const section = clause.section_id
-      ? doc.sections.find((s) => s.section_id === clause.section_id)
+      ? getSectionLookup(doc).get(clause.section_id)
       : undefined;
 
     return {
@@ -244,10 +275,20 @@ class ReportStore {
   }
 
   /**
-   * Cleans up expired cache entries
+   * Cleans up expired cache entries (throttled to avoid O(N) full scans on every write)
    */
   private pruneExpired(): void {
     const now = Date.now();
+    const isNearCapacity =
+      this.auditStore.size >= MAX_STORE_ENTRIES ||
+      this.comparisonStore.size >= MAX_STORE_ENTRIES ||
+      this.documentStore.size >= MAX_STORE_ENTRIES;
+
+    if (!isNearCapacity && now - this.lastPruneTime < PRUNE_THROTTLE_MS) {
+      return;
+    }
+    this.lastPruneTime = now;
+
     for (const [key, val] of this.auditStore.entries()) {
       if (now - val.timestamp > STORE_TTL_MS) {
         this.auditStore.delete(key);
@@ -272,6 +313,7 @@ class ReportStore {
     this.auditStore.clear();
     this.comparisonStore.clear();
     this.documentStore.clear();
+    this.lastPruneTime = 0;
   }
 }
 

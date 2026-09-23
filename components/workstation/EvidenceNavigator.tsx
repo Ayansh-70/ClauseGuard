@@ -105,6 +105,8 @@ export function EvidenceNavigator({
   const [clauseDataB, setClauseDataB] = useState<FetchedClauseData | null>(null);
   const previouslyFocusedElement = useRef<HTMLElement | null>(null);
 
+  const evidenceCacheRef = useRef<Map<string, FetchedClauseData>>(new Map());
+
   // Focus modal container on mount and handle Escape key
   useEffect(() => {
     previouslyFocusedElement.current =
@@ -123,7 +125,7 @@ export function EvidenceNavigator({
   }, [onClose]);
 
   // =========================================================================
-  // Single Audit Data Fetching & Resolution (Race Condition Free)
+  // Single Audit Data Fetching & Resolution (Race Condition Free & Cached)
   // =========================================================================
   useEffect(() => {
     let isCancelled = false;
@@ -133,15 +135,24 @@ export function EvidenceNavigator({
       setAuditFetchError(null);
 
       if (documentId && finding.clause_id) {
-        setAuditLoading(true);
         const quote = finding.verbatim_quote || '';
         const url = `/api/v1/evidence?document_id=${encodeURIComponent(documentId)}&clause_id=${encodeURIComponent(finding.clause_id)}&quote=${encodeURIComponent(quote)}&radius=400`;
+
+        const cached = evidenceCacheRef.current.get(url);
+        if (cached) {
+          setAuditClauseData(cached);
+          setAuditLoading(false);
+          return;
+        }
+
+        setAuditLoading(true);
 
         fetch(url)
           .then(async (res) => {
             if (isCancelled) return;
             if (res.ok) {
               const data: FetchedClauseData = await res.json();
+              evidenceCacheRef.current.set(url, data);
               if (!isCancelled) {
                 setAuditClauseData(data);
                 setAuditLoading(false);
@@ -175,7 +186,7 @@ export function EvidenceNavigator({
   }, [mode, finding, documentId]);
 
   // =========================================================================
-  // Comparison Data Fetching & Resolution (Race Condition Free)
+  // Comparison Data Fetching & Resolution (Race Condition Free & Cached)
   // =========================================================================
   useEffect(() => {
     let isCancelled = false;
@@ -187,29 +198,41 @@ export function EvidenceNavigator({
       if (contractA_id && comparisonFinding.contract_a_source?.clause_id) {
         const quoteA = comparisonFinding.contract_a_source.exact_quote || '';
         const urlA = `/api/v1/evidence?document_id=${encodeURIComponent(contractA_id)}&clause_id=${encodeURIComponent(comparisonFinding.contract_a_source.clause_id)}&quote=${encodeURIComponent(quoteA)}&radius=400`;
-        fetch(urlA)
-          .then(async (res) => {
-            if (isCancelled) return;
-            if (res.ok) {
-              const data: FetchedClauseData = await res.json();
-              if (!isCancelled) setClauseDataA(data);
-            }
-          })
-          .catch(() => {});
+        const cachedA = evidenceCacheRef.current.get(urlA);
+        if (cachedA) {
+          setClauseDataA(cachedA);
+        } else {
+          fetch(urlA)
+            .then(async (res) => {
+              if (isCancelled) return;
+              if (res.ok) {
+                const data: FetchedClauseData = await res.json();
+                evidenceCacheRef.current.set(urlA, data);
+                if (!isCancelled) setClauseDataA(data);
+              }
+            })
+            .catch(() => {});
+        }
       }
 
       if (contractB_id && comparisonFinding.contract_b_source?.clause_id) {
         const quoteB = comparisonFinding.contract_b_source.exact_quote || '';
         const urlB = `/api/v1/evidence?document_id=${encodeURIComponent(contractB_id)}&clause_id=${encodeURIComponent(comparisonFinding.contract_b_source.clause_id)}&quote=${encodeURIComponent(quoteB)}&radius=400`;
-        fetch(urlB)
-          .then(async (res) => {
-            if (isCancelled) return;
-            if (res.ok) {
-              const data: FetchedClauseData = await res.json();
-              if (!isCancelled) setClauseDataB(data);
-            }
-          })
-          .catch(() => {});
+        const cachedB = evidenceCacheRef.current.get(urlB);
+        if (cachedB) {
+          setClauseDataB(cachedB);
+        } else {
+          fetch(urlB)
+            .then(async (res) => {
+              if (isCancelled) return;
+              if (res.ok) {
+                const data: FetchedClauseData = await res.json();
+                evidenceCacheRef.current.set(urlB, data);
+                if (!isCancelled) setClauseDataB(data);
+              }
+            })
+            .catch(() => {});
+        }
       }
     } else {
       setClauseDataA(null);

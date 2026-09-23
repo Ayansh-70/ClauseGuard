@@ -15,6 +15,10 @@ export interface VerificationResult {
   rejected_count: number;
 }
 
+const CLAUSE_NORM_CACHE = new WeakMap<Clause, string>();
+let sharedPrevRow = new Int32Array(512);
+let sharedCurrRow = new Int32Array(512);
+
 /**
  * Normalizes text for Tier-2 comparison (removes multiple whitespace and standardizes quotes).
  */
@@ -27,27 +31,43 @@ function normalizeForComparison(str: string): string {
     .toLowerCase();
 }
 
+function getNormalizedClauseText(clause: Clause): string {
+  let cached = CLAUSE_NORM_CACHE.get(clause);
+  if (cached === undefined) {
+    cached = normalizeForComparison(clause.text);
+    CLAUSE_NORM_CACHE.set(clause, cached);
+  }
+  return cached;
+}
+
 /**
- * Calculates Levenshtein edit distance with 2-row memory allocation and optional early-exit threshold.
+ * Calculates Levenshtein edit distance with zero-allocation buffers and early-exit threshold.
  */
 function levenshteinDistance(a: string, b: string, maxLimit?: number): number {
   const m = a.length;
   const n = b.length;
   if (m === 0) return n;
   if (n === 0) return m;
-  if (Math.abs(m - n) > (maxLimit ?? Infinity)) return (maxLimit ?? Infinity) + 1;
+  const limit = maxLimit ?? Infinity;
+  if (Math.abs(m - n) > limit) return limit + 1;
 
-  let prev = new Array<number>(n + 1);
-  let curr = new Array<number>(n + 1);
+  if (n + 1 > sharedPrevRow.length) {
+    sharedPrevRow = new Int32Array(Math.max(sharedPrevRow.length * 2, n + 64));
+    sharedCurrRow = new Int32Array(Math.max(sharedCurrRow.length * 2, n + 64));
+  }
+
+  let prev = sharedPrevRow;
+  let curr = sharedCurrRow;
 
   for (let j = 0; j <= n; j++) prev[j] = j;
 
   for (let i = 1; i <= m; i++) {
     curr[0] = i;
     let minRowVal = curr[0];
+    const aChar = a.charCodeAt(i - 1);
 
     for (let j = 1; j <= n; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      const cost = aChar === b.charCodeAt(j - 1) ? 0 : 1;
       curr[j] = Math.min(
         prev[j] + 1,       // deletion
         curr[j - 1] + 1,   // insertion
@@ -97,7 +117,7 @@ export function verifyQuoteAgainstClause(
   }
 
   // Tier 2: Normalized matching
-  const normClause = normalizeForComparison(clause.text);
+  const normClause = getNormalizedClauseText(clause);
   const normExcerpt = normalizeForComparison(trimmedExcerpt);
 
   const normIndex = normClause.indexOf(normExcerpt);

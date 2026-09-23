@@ -2,17 +2,21 @@ import 'server-only';
 import { AuditResult, Finding } from '@/types/domain';
 import { GLOBAL_LEGAL_DISCLAIMER } from '@/lib/constants/disclaimers';
 
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#039;',
+};
+const HTML_ESCAPE_REGEX = /[&<>"']/g;
+
 /**
- * Escapes untrusted text for safe HTML injection.
+ * Escapes untrusted text for safe HTML injection (single-pass lookup).
  */
 function escapeHtml(str: string | undefined | null): string {
   if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  return String(str).replace(HTML_ESCAPE_REGEX, (ch) => HTML_ESCAPES[ch]);
 }
 
 /**

@@ -18,27 +18,38 @@ function normalizeString(str: string): string {
     .trim();
 }
 
+const STEM_CACHE = new Map<string, string>();
+
 /**
  * Legal suffix stemmer to unify terms like "indemnification", "indemnity", "indemnify"
  */
 function stemWord(word: string): string {
-  let w = word.toLowerCase();
-  if (w.startsWith('indemn')) return 'indemn';
-  if (w.startsWith('terminat')) return 'terminat';
-  if (w.startsWith('liab')) return 'liab';
-  if (w.startsWith('confiden')) return 'confiden';
-  if (w.startsWith('govern')) return 'govern';
-  if (w.startsWith('arbitrat')) return 'arbitrat';
-  if (w.startsWith('warrant')) return 'warrant';
-  if (w.startsWith('jurisdict')) return 'jurisdict';
-  if (w.startsWith('intellect') || w.startsWith('propriet')) return 'intellect';
-  if (w.startsWith('obligat')) return 'obligat';
-  if (w.startsWith('restrict') || w.startsWith('compet')) return 'compet';
-  if (w.startsWith('remunerat') || w.startsWith('compensat') || w.startsWith('pay') || w.startsWith('invoic') || w.startsWith('fee')) return 'pay';
+  const w = word.toLowerCase();
+  const cached = STEM_CACHE.get(w);
+  if (cached !== undefined) return cached;
 
-  // Standard suffix stripping
-  w = w.replace(/(?:ational|ation|tion|sion|ities|ity|ments|ment|ings|ing|ences|ence|ances|ance|ies|ed|es|s)$/, '');
-  return w;
+  let stemmed = w;
+  if (w.startsWith('indemn')) stemmed = 'indemn';
+  else if (w.startsWith('terminat')) stemmed = 'terminat';
+  else if (w.startsWith('liab')) stemmed = 'liab';
+  else if (w.startsWith('confiden')) stemmed = 'confiden';
+  else if (w.startsWith('govern')) stemmed = 'govern';
+  else if (w.startsWith('arbitrat')) stemmed = 'arbitrat';
+  else if (w.startsWith('warrant')) stemmed = 'warrant';
+  else if (w.startsWith('jurisdict')) stemmed = 'jurisdict';
+  else if (w.startsWith('intellect') || w.startsWith('propriet')) stemmed = 'intellect';
+  else if (w.startsWith('obligat')) stemmed = 'obligat';
+  else if (w.startsWith('restrict') || w.startsWith('compet')) stemmed = 'compet';
+  else if (w.startsWith('remunerat') || w.startsWith('compensat') || w.startsWith('pay') || w.startsWith('invoic') || w.startsWith('fee')) stemmed = 'pay';
+  else {
+    // Standard suffix stripping
+    stemmed = w.replace(/(?:ational|ation|tion|sion|ities|ity|ments|ment|ings|ing|ences|ence|ances|ance|ies|ed|es|s)$/, '');
+  }
+
+  if (STEM_CACHE.size < 2000) {
+    STEM_CACHE.set(w, stemmed);
+  }
+  return stemmed;
 }
 
 /**
@@ -66,13 +77,14 @@ function extractTokenSet(text: string): Set<string> {
 }
 
 /**
- * Computes Jaccard similarity between two token sets
+ * Computes Jaccard similarity between two token sets (optimized: iterates smaller set)
  */
 function computeJaccardSimilarity(setA: Set<string>, setB: Set<string>): number {
   if (setA.size === 0 || setB.size === 0) return 0;
+  const [smaller, larger] = setA.size <= setB.size ? [setA, setB] : [setB, setA];
   let intersection = 0;
-  for (const token of setA) {
-    if (setB.has(token)) intersection++;
+  for (const token of smaller) {
+    if (larger.has(token)) intersection++;
   }
   const union = setA.size + setB.size - intersection;
   return union > 0 ? intersection / union : 0;
@@ -145,6 +157,17 @@ export function alignDocumentClauses(
     sectionMetaB.set(sec.section_id, { cleanTitle: clean, tokens: extractTokenSet(clean) });
   }
 
+  // Precompute section pair similarities once (O(|SecA| * |SecB|) instead of O(|ClausesA| * |ClausesB|))
+  const sectionPairCache = new Map<string, { secSimilarity: number; bestSecSim: number }>();
+  for (const [idA, metaA] of sectionMetaA.entries()) {
+    for (const [idB, metaB] of sectionMetaB.entries()) {
+      const secSimilarity = computeDiceSimilarity(metaA.cleanTitle, metaB.cleanTitle);
+      const secJaccard = computeJaccardSimilarity(metaA.tokens, metaB.tokens);
+      const bestSecSim = Math.max(secSimilarity, secJaccard);
+      sectionPairCache.set(`${idA}::${idB}`, { secSimilarity, bestSecSim });
+    }
+  }
+
   const titleMetaA = new Map<string, HeadingMeta>();
   for (const c of docA.clauses) {
     if (c.title) {
@@ -161,6 +184,9 @@ export function alignDocumentClauses(
     }
   }
 
+  // Title similarity cache across identical clean titles
+  const titlePairCache = new Map<string, number>();
+
   const tokensA = new Map<string, Set<string>>();
   for (const c of docA.clauses) {
     tokensA.set(c.clause_id, extractTokenSet(c.text));
@@ -175,12 +201,10 @@ export function alignDocumentClauses(
 
   // Compute pairwise scoring across all clauses
   for (const cA of docA.clauses) {
-    const secA = cA.section_id ? sectionMetaA.get(cA.section_id) : undefined;
     const titleA = titleMetaA.get(cA.clause_id);
     const tokA = tokensA.get(cA.clause_id)!;
 
     for (const cB of docB.clauses) {
-      const secB = cB.section_id ? sectionMetaB.get(cB.section_id) : undefined;
       const titleB = titleMetaB.get(cB.clause_id);
       const tokB = tokensB.get(cB.clause_id)!;
 
@@ -196,24 +220,30 @@ export function alignDocumentClauses(
         }
       }
 
-      // 2. Section heading similarity (Dice + stem check on precomputed clean headings)
+      // 2. Section heading similarity (precomputed O(1) lookup)
       let secSimilarity = 0;
-      if (secA && secB) {
-        secSimilarity = computeDiceSimilarity(secA.cleanTitle, secB.cleanTitle);
-        const secJaccard = computeJaccardSimilarity(secA.tokens, secB.tokens);
-        const bestSecSim = Math.max(secSimilarity, secJaccard);
-
-        if (bestSecSim >= 0.4) {
-          score += bestSecSim * 0.25;
-          rationaleParts.push(`Matching section "${secA.cleanTitle}"`);
+      if (cA.section_id && cB.section_id) {
+        const secPair = sectionPairCache.get(`${cA.section_id}::${cB.section_id}`);
+        if (secPair) {
+          secSimilarity = secPair.secSimilarity;
+          if (secPair.bestSecSim >= 0.4) {
+            score += secPair.bestSecSim * 0.25;
+            const secA = sectionMetaA.get(cA.section_id);
+            rationaleParts.push(`Matching section "${secA?.cleanTitle || ''}"`);
+          }
         }
       }
 
-      // 3. Clause title similarity
+      // 3. Clause title similarity (with titlePairCache)
       if (titleA && titleB) {
-        const titleSimilarity = computeDiceSimilarity(titleA.cleanTitle, titleB.cleanTitle);
-        const titleJaccard = computeJaccardSimilarity(titleA.tokens, titleB.tokens);
-        const bestTitleSim = Math.max(titleSimilarity, titleJaccard);
+        const cacheKey = `${titleA.cleanTitle}::${titleB.cleanTitle}`;
+        let bestTitleSim = titlePairCache.get(cacheKey);
+        if (bestTitleSim === undefined) {
+          const titleSimilarity = computeDiceSimilarity(titleA.cleanTitle, titleB.cleanTitle);
+          const titleJaccard = computeJaccardSimilarity(titleA.tokens, titleB.tokens);
+          bestTitleSim = Math.max(titleSimilarity, titleJaccard);
+          titlePairCache.set(cacheKey, bestTitleSim);
+        }
 
         if (bestTitleSim >= 0.4) {
           score += bestTitleSim * 0.25;

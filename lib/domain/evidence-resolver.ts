@@ -59,15 +59,30 @@ export function normalizeQuotesAndWhitespace(str: string): string {
     .trim();
 }
 
+const REGEX_CACHE = new Map<string, RegExp | null>();
+const MAX_REGEX_CACHE_SIZE = 300;
+
 /**
  * Builds a regex pattern that matches the quote across varied whitespace, dashes, and quote styling.
  * Caps at 200 tokens to prevent excessive compilation cost on pathological inputs.
+ * Uses bounded cache to eliminate redundant pattern compilation across repeated verifications.
  */
 function buildNormalizedRegex(quote: string, caseSensitive: boolean): RegExp | null {
   if (typeof quote !== 'string' || quote.length > 5000) return null;
 
+  const cacheKey = `${caseSensitive ? 'CS' : 'CI'}:${quote}`;
+  const cached = REGEX_CACHE.get(cacheKey);
+  if (cached !== undefined) return cached;
+
   const tokens = quote.split(/\s+/).filter(Boolean);
-  if (tokens.length === 0 || tokens.length > 200) return null;
+  if (tokens.length === 0 || tokens.length > 200) {
+    if (REGEX_CACHE.size >= MAX_REGEX_CACHE_SIZE) {
+      const firstKey = REGEX_CACHE.keys().next().value;
+      if (firstKey) REGEX_CACHE.delete(firstKey);
+    }
+    REGEX_CACHE.set(cacheKey, null);
+    return null;
+  }
 
   const escapedTokens = tokens.map((token) => {
     let escaped = escapeRegex(token);
@@ -80,11 +95,20 @@ function buildNormalizedRegex(quote: string, caseSensitive: boolean): RegExp | n
   });
 
   const pattern = escapedTokens.join('\\s+');
+  let regex: RegExp | null = null;
   try {
-    return new RegExp(pattern, caseSensitive ? '' : 'i');
+    regex = new RegExp(pattern, caseSensitive ? '' : 'i');
   } catch {
-    return null;
+    regex = null;
   }
+
+  if (REGEX_CACHE.size >= MAX_REGEX_CACHE_SIZE) {
+    const firstKey = REGEX_CACHE.keys().next().value;
+    if (firstKey) REGEX_CACHE.delete(firstKey);
+  }
+  REGEX_CACHE.set(cacheKey, regex);
+
+  return regex;
 }
 
 /**

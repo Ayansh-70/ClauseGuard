@@ -34,11 +34,10 @@ export function normalizeContractText(rawText: string): string {
   // 3. Conservative hyphenation repair for line wraps
   text = repairLineWrapHyphens(text);
 
-  // 4. Normalize trailing spaces on lines
-  const lines = text.split('\n').map((line) => line.replace(/[ \t]+$/g, ''));
+  // 4. Normalize trailing spaces on lines without allocating intermediate line arrays
+  text = text.replace(/[ \t]+$/gm, '');
 
-  // 5. Rejoin and collapse excessive blank lines (>2 blank lines -> 2 blank lines)
-  text = lines.join('\n');
+  // 5. Collapse excessive blank lines (>2 blank lines -> 2 blank lines)
   text = text.replace(/\n{3,}/g, '\n\n');
 
   // 6. Final trim of leading/trailing file whitespace

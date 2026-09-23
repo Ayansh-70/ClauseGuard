@@ -50,6 +50,10 @@ export function segmentDocumentClauses(
   const labelToIdMap = new Map<string, string>();
   const parentChildLinks: { childId: string; parentId: string }[] = [];
 
+  let lastScannedOffset = 0;
+  let pageCursor = 0;
+  let sectionCursor = 0;
+
   for (let b = 0; b < rawBlocks.length; b++) {
     const blockText = rawBlocks[b].trim();
     if (blockText.length === 0) continue;
@@ -59,17 +63,30 @@ export function segmentDocumentClauses(
     const blockEnd = blockStart + blockText.length;
     currentOffset = blockEnd;
 
-    // Calculate line number
-    const precedingText = canonicalText.substring(0, blockStart);
-    currentLine = (precedingText.match(/\n/g) || []).length + 1;
+    // Calculate line number incrementally without full-document substring allocations
+    for (let i = lastScannedOffset; i < blockStart; i++) {
+      if (canonicalText.charCodeAt(i) === 10) {
+        currentLine++;
+      }
+    }
+    lastScannedOffset = blockStart;
 
-    // Determine page
-    const page = pages.find(
-      (p) => blockStart >= p.char_start_offset && blockStart <= p.char_end_offset
-    );
+    // Determine page via monotonically advancing cursor
+    while (pageCursor < pages.length - 1 && blockStart > pages[pageCursor].char_end_offset) {
+      pageCursor++;
+    }
+    const candidatePage = pages[pageCursor];
+    const page = candidatePage && blockStart >= candidatePage.char_start_offset && blockStart <= candidatePage.char_end_offset
+      ? candidatePage
+      : pages.find((p) => blockStart >= p.char_start_offset && blockStart <= p.char_end_offset);
 
-    // Identify section
-    const sectionId = findEnclosingSection(blockStart, sections);
+    // Identify section via cursor
+    while (sectionCursor < sections.length - 1 && blockStart >= sections[sectionCursor + 1].start_offset) {
+      sectionCursor++;
+    }
+    const sectionId = sections.length > 0 && blockStart >= sections[sectionCursor].start_offset
+      ? sections[sectionCursor].section_id
+      : findEnclosingSection(blockStart, sections);
 
     // Check if block begins with legal numbering
     const numMatch = blockText.match(CLAUSE_NUMBER_PREFIX);
